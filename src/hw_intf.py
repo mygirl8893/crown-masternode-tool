@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Author: Bertrand256
 # Created on: 2017-03
-from dash_utils import bip32_path_n_to_string
+from terracoin_utils import bip32_path_n_to_string
 from hw_common import HardwareWalletPinException
 import logging
 from app_config import HWType
@@ -153,7 +153,7 @@ def prepare_transfer_tx(main_ui, utxos_to_spend, dest_address, tx_fee, rawtransa
     Creates a signed transaction.
     :param main_ui: Main window for configuration data
     :param utxos_to_spend: list of utxos to send
-    :param dest_address: destination (Dash) address
+    :param dest_address: destination (Terracoin) address
     :param tx_fee: transaction fee
     :param rawtransactions: dict mapping txid to rawtransaction
     :return: tuple (serialized tx, total transaction amount in satoshis)
@@ -258,7 +258,7 @@ def get_address(main_ui, bip32_path):
                 # trezor/keepkey require bip32 path argument as an array of integers
                 bip32_path = client.expand_path(bip32_path)
 
-            return client.get_address('Dash', bip32_path, False)
+            return client.get_address('Terracoin', bip32_path, False)
 
         elif main_ui.config.hw_type == HWType.ledger_nano_s:
             import hw_intf_ledgernano as ledger
@@ -290,7 +290,7 @@ def get_address_and_pubkey(main_ui, bip32_path):
                 bip32_path = client.expand_path(bip32_path)
 
             return {
-                'address': client.get_address('Dash', bip32_path, False),
+                'address': client.get_address('Terracoin', bip32_path, False),
                 'publicKey': client.get_public_node(bip32_path).node.public_key
             }
 

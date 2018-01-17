@@ -103,8 +103,8 @@ class DBCache(object):
         cur.execute("CREATE TABLE IF NOT EXISTS MASTERNODES(id INTEGER PRIMARY KEY, ident TEXT, status TEXT,"
                     " protocol TEXT, payee TEXT, last_seen INTEGER, active_seconds INTEGER,"
                     " last_paid_time INTEGER, last_paid_block INTEGER, ip TEXT,"
-                    " dmt_active INTEGER, dmt_create_time TEXT, dmt_deactivation_time TEXT)")
-        cur.execute("CREATE INDEX IF NOT EXISTS IDX_MASTERNODES_DMT_ACTIVE ON MASTERNODES(dmt_active)")
+                    " tmt_active INTEGER, tmt_create_time TEXT, tmt_deactivation_time TEXT)")
+        cur.execute("CREATE INDEX IF NOT EXISTS IDX_MASTERNODES_TMT_ACTIVE ON MASTERNODES(tmt_active)")
         cur.execute("CREATE INDEX IF NOT EXISTS IDX_MASTERNODES_IDENT ON MASTERNODES(ident)")
 
         # create structures for proposals:
@@ -113,8 +113,8 @@ class DBCache(object):
                     " no_count INTEGER, abstain_count INTEGER, creation_time TEXT, url TEXT, payment_address TEXT,"
                     " type INTEGER, hash TEXT,  collateral_hash TEXT, f_blockchain_validity INTEGER,"
                     " f_cached_valid INTEGER, f_cached_delete INTEGER, f_cached_funding INTEGER, "
-                    " f_cached_endorsed INTEGER, object_type INTEGER, is_valid_reason TEXT, dmt_active INTEGER, "
-                    " dmt_create_time TEXT, dmt_deactivation_time TEXT, dmt_voting_last_read_time INTEGER,"
+                    " f_cached_endorsed INTEGER, object_type INTEGER, is_valid_reason TEXT, tmt_active INTEGER, "
+                    " tmt_create_time TEXT, tmt_deactivation_time TEXT, tmt_voting_last_read_time INTEGER,"
                     " ext_attributes_loaded INTEGER, owner TEXT, title TEXT)")
         cur.execute("CREATE INDEX IF NOT EXISTS IDX_PROPOSALS_HASH ON PROPOSALS(hash)")
 
@@ -135,13 +135,13 @@ class DBCache(object):
                 break
         if not ext_attributes_loaded_exists:
             # column for saving information whether additional attributes has been read from external sources
-            # like DashCentral.org (1: yes, 0: no)
+            # like TerracoinCentral.org (1: yes, 0: no)
             cur.execute("ALTER TABLE PROPOSALS ADD COLUMN ext_attributes_loaded INTEGER")
         if not prop_owner_exists:
-            # proposal's owner from an external source like DashCentral.org
+            # proposal's owner from an external source like TerracoinCentral.org
             cur.execute("ALTER TABLE PROPOSALS ADD COLUMN owner TEXT")
         if not prop_title_exists:
-            # proposal's title from an external source like DashCentral.org
+            # proposal's title from an external source like TerracoinCentral.org
             cur.execute("ALTER TABLE PROPOSALS ADD COLUMN title TEXT")
 
         cur.execute("CREATE TABLE IF NOT EXISTS VOTING_RESULTS(id INTEGER PRIMARY KEY, proposal_id INTEGER,"

@@ -18,7 +18,7 @@ from wnd_utils import WndUtils
 
 class AppCache(object):
     def __init__(self, cache_dir, app_version):
-        self.cache_file = os.path.join(cache_dir, 'dmt_cache.json')
+        self.cache_file = os.path.join(cache_dir, 'tmt_cache.json')
         self.app_version = app_version
         self.finishing = False
         self.last_data_change_time = 0

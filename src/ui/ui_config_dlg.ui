@@ -34,9 +34,9 @@
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="tabDashd">
+     <widget class="QWidget" name="tabTerracoind">
       <attribute name="title">
-       <string>Dash network</string>
+       <string>Terracoin network</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <property name="spacing">
@@ -381,7 +381,7 @@
        <item>
         <widget class="QCheckBox" name="chbDownloadProposalExternalData">
          <property name="text">
-          <string>Download external proposal attributes (DashCentral.org)</string>
+          <string>Download external proposal attributes (TerracoinCentral.org)</string>
          </property>
         </widget>
        </item>

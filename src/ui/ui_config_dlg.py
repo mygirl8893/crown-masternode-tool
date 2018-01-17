@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/Users/blogin/PycharmProjects/DMT-git/src/ui/ui_config_dlg.ui'
+# Form implementation generated from reading ui file '/Users/blogin/PycharmProjects/TMT-git/src/ui/ui_config_dlg.ui'
 #
 # Created by: PyQt5 UI code generator 5.9.1
 #
@@ -21,13 +21,13 @@ class Ui_ConfigDlg(object):
         self.tabWidget = QtWidgets.QTabWidget(ConfigDlg)
         self.tabWidget.setTabShape(QtWidgets.QTabWidget.Rounded)
         self.tabWidget.setObjectName("tabWidget")
-        self.tabDashd = QtWidgets.QWidget()
-        self.tabDashd.setObjectName("tabDashd")
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.tabDashd)
+        self.tabTerracoind = QtWidgets.QWidget()
+        self.tabTerracoind.setObjectName("tabTerracoind")
+        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.tabTerracoind)
         self.verticalLayout_3.setContentsMargins(3, 3, 3, 3)
         self.verticalLayout_3.setSpacing(3)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.splitter = QtWidgets.QSplitter(self.tabDashd)
+        self.splitter = QtWidgets.QSplitter(self.tabTerracoind)
         self.splitter.setOrientation(QtCore.Qt.Horizontal)
         self.splitter.setOpaqueResize(True)
         self.splitter.setChildrenCollapsible(True)
@@ -104,11 +104,11 @@ class Ui_ConfigDlg(object):
         self.verticalLayout_5 = QtWidgets.QVBoxLayout()
         self.verticalLayout_5.setSizeConstraint(QtWidgets.QLayout.SetDefaultConstraint)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
-        self.chbRandomConn = QtWidgets.QCheckBox(self.tabDashd)
+        self.chbRandomConn = QtWidgets.QCheckBox(self.tabTerracoind)
         self.chbRandomConn.setObjectName("chbRandomConn")
         self.verticalLayout_5.addWidget(self.chbRandomConn)
         self.verticalLayout_3.addLayout(self.verticalLayout_5)
-        self.tabWidget.addTab(self.tabDashd, "")
+        self.tabWidget.addTab(self.tabTerracoind, "")
         self.tabMisc = QtWidgets.QWidget()
         self.tabMisc.setObjectName("tabMisc")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.tabMisc)
@@ -206,7 +206,7 @@ class Ui_ConfigDlg(object):
         self.label.setText(_translate("ConfigDlg", "Connections:"))
         self.chbRandomConn.setToolTip(_translate("ConfigDlg", "Pick random connection to distribute clients\' load over multiple nodes."))
         self.chbRandomConn.setText(_translate("ConfigDlg", "Pick random connection"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabDashd), _translate("ConfigDlg", "Dash network"))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabTerracoind), _translate("ConfigDlg", "Terracoin network"))
         self.label_3.setText(_translate("ConfigDlg", "Hardware wallet:"))
         self.chbHwTrezor.setText(_translate("ConfigDlg", "Trezor"))
         self.chbHwKeepKey.setText(_translate("ConfigDlg", "KeepKey"))
@@ -216,7 +216,7 @@ class Ui_ConfigDlg(object):
         self.chbBackupConfigFile.setText(_translate("ConfigDlg", "Backup config file"))
         self.chbConfirmWhenVoting.setText(_translate("ConfigDlg", "Ask for confirmation when voting (proposals)"))
         self.chbAddRandomOffsetToVotingTime.setText(_translate("ConfigDlg", "Add random offset to a vote time to enhance privacy (proposals)"))
-        self.chbDownloadProposalExternalData.setText(_translate("ConfigDlg", "Download external proposal attributes (DashCentral.org)"))
+        self.chbDownloadProposalExternalData.setText(_translate("ConfigDlg", "Download external proposal attributes (TerracoinCentral.org)"))
         self.chbDontUseFileDialogs.setText(_translate("ConfigDlg", "Don\'t use file dialogs"))
         self.lblLogLevel.setText(_translate("ConfigDlg", "Log level:"))
         self.cboLogLevel.setItemText(0, _translate("ConfigDlg", "Critical"))

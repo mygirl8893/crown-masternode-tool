@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/Users/blogin/PycharmProjects/DMT-git/src/ui/ui_main_dlg.ui'
+# Form implementation generated from reading ui file '/Users/blogin/PycharmProjects/TMT-git/src/ui/ui_main_dlg.ui'
 #
 # Created by: PyQt5 UI code generator 5.9.1
 #
@@ -477,14 +477,14 @@ class Ui_MainWindow(object):
         self.edtMnProtocolVersion.setToolTip(_translate("MainWindow", "Enter the protocol version number to be sent at masternode start time"))
         self.edtMnProtocolVersion.setInputMask(_translate("MainWindow", "00009"))
         self.edtMnProtocolVersion.setPlaceholderText(_translate("MainWindow", "default"))
-        self.edtMnCollateralTx.setToolTip(_translate("MainWindow", "The collateral transaction hash from the 1000 Dash deposit"))
+        self.edtMnCollateralTx.setToolTip(_translate("MainWindow", "The collateral transaction hash from the 5000 TRC deposit"))
         self.label_7.setText(_translate("MainWindow", "TX index:"))
-        self.edtMnCollateralTxIndex.setToolTip(_translate("MainWindow", "The collateral transaction\'s (unspent) output index with the 1000 Dash deposit (usally 0)"))
-        self.edtMnCollateralAddress.setToolTip(_translate("MainWindow", "Dash address of the 1000 Dash collateral, coverted from BIP32 path with hardware wallet."))
-        self.edtMnCollateralAddress.setPlaceholderText(_translate("MainWindow", "Dash address"))
-        self.btnHwAddressToBip32.setToolTip(_translate("MainWindow", "Convert Dash address to BIP32 path using hardware wallet"))
-        self.btnHwBip32ToAddress.setToolTip(_translate("MainWindow", "Convert BIP32 path to Dash address using hardware wallet"))
-        self.edtMnCollateralBip32Path.setToolTip(_translate("MainWindow", "BIP32 path of the 1000 Dash collateral (e.g. 44\'/5\'/0\'/0/0)"))
+        self.edtMnCollateralTxIndex.setToolTip(_translate("MainWindow", "The collateral transaction\'s (unspent) output index with the 5000 TRC deposit (usally 0)"))
+        self.edtMnCollateralAddress.setToolTip(_translate("MainWindow", "Terracoin address of the 5000 TRC collateral, coverted from BIP32 path with hardware wallet."))
+        self.edtMnCollateralAddress.setPlaceholderText(_translate("MainWindow", "Terracoin address"))
+        self.btnHwAddressToBip32.setToolTip(_translate("MainWindow", "Convert Terracoin address to BIP32 path using hardware wallet"))
+        self.btnHwBip32ToAddress.setToolTip(_translate("MainWindow", "Convert BIP32 path to Terracoin address using hardware wallet"))
+        self.edtMnCollateralBip32Path.setToolTip(_translate("MainWindow", "BIP32 path of the 5000 TRC collateral (e.g. 44\'/5\'/0\'/0/0)"))
         self.edtMnCollateralBip32Path.setPlaceholderText(_translate("MainWindow", "BIP32 path"))
         self.label_4.setText(_translate("MainWindow", "Collateral:"))
         self.label_9.setText(_translate("MainWindow", "MN private key:"))
@@ -503,9 +503,9 @@ class Ui_MainWindow(object):
         self.btnBroadcastMn.setText(_translate("MainWindow", "Start Masternode using Hardware Wallet"))
         self.btnFindCollateral.setToolTip(_translate("MainWindow", "Find collateral transaction"))
         self.btnFindCollateral.setText(_translate("MainWindow", "Lookup"))
-        self.btnCheckConnection.setToolTip(_translate("MainWindow", "Check connection with Dash daemon"))
+        self.btnCheckConnection.setToolTip(_translate("MainWindow", "Check connection with Terracoin daemon"))
         self.btnCheckConnection.setText(_translate("MainWindow", "Check RPC connection"))
-        self.btnConfiguration.setToolTip(_translate("MainWindow", "Open configuration window of communication with a Dash daemon"))
+        self.btnConfiguration.setToolTip(_translate("MainWindow", "Open configuration window of communication with a Terracoin daemon"))
         self.btnConfiguration.setText(_translate("MainWindow", "Configure"))
         self.btnSaveConfiguration.setText(_translate("MainWindow", "Save configuration"))
         self.btnActions.setText(_translate("MainWindow", "Tools"))

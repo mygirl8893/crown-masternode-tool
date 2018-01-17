@@ -20,13 +20,13 @@ with open(os.path.join(base_dir, 'version.txt')) as fptr:
             break
 
 add_files = [
- ('img/dmt.png','/img'),
- ('img/dash.ico','/img'),
- ('img/dmt.ico','/img'),
+ ('img/tmt.png','/img'),
+ ('img/terracoin.ico','/img'),
+ ('img/tmt.ico','/img'),
  ('img/arrow-right.ico','/img'),
  ('img/hw-lock.ico','/img'),
  ('img/hw-test.ico','/img'),
- ('img/dash-transfer.png','/img'),
+ ('img/terracoin-transfer.png','/img'),
  ('img/check.png','/img'),
  ('img/dollar.png','/img'),
  ('img/gear.png','/img'),
@@ -62,7 +62,7 @@ if os_type == 'win32':
 # add bitcoin library data file
 add_files.append( (os.path.join(lib_path, 'bitcoin/english.txt'),'/bitcoin') )
 
-a = Analysis(['src/dash_masternode_tool.py'],
+a = Analysis(['src/terracoin_masternode_tool.py'],
              pathex=[base_dir],
              binaries=[],
              datas=add_files,
@@ -82,17 +82,17 @@ exe = EXE(pyz,
           a.binaries,
           a.zipfiles,
           a.datas,
-          name='DashMasternodeTool',
+          name='TerracoinMasternodeTool',
           debug=False,
           strip=False,
           upx=False,
           console=False,
-		  icon=os.path.join('img',('dmt.%s' % ('icns' if os_type=='darwin' else 'ico'))))
+		  icon=os.path.join('img',('tmt.%s' % ('icns' if os_type=='darwin' else 'ico'))))
 
 if os_type == 'darwin':
     app = BUNDLE(exe,
-                 name='DashMasternodeTool.app',
-                 icon='img/dmt.icns',
+                 name='TerracoinMasternodeTool.app',
+                 icon='img/tmt.icns',
                  bundle_identifier=None,
                      info_plist={
                         'NSHighResolutionCapable': 'True'
@@ -111,10 +111,10 @@ os.chdir(dist_path)
 
 if os_type == 'win32':
     print('Compressing Windows executable')
-    os.system('"C:\\Program Files\\7-Zip\\7z.exe" a %s %s -mx0' % (os.path.join(all_bin_dir, 'DashMasternodeTool_' + version_str + '.win' + no_bits + '.zip'),  'DashMasternodeTool.exe'))
+    os.system('"C:\\Program Files\\7-Zip\\7z.exe" a %s %s -mx0' % (os.path.join(all_bin_dir, 'TerracoinMasternodeTool_' + version_str + '.win' + no_bits + '.zip'),  'TerracoinMasternodeTool.exe'))
 elif os_type == 'darwin':
     print('Compressing Mac executable')
-    os.system('zip -r "%s" "%s"' % (os.path.join(all_bin_dir, 'DashMasternodeTool_' + version_str + '.mac.zip'),  'DashMasternodeTool.app'))
+    os.system('zip -r "%s" "%s"' % (os.path.join(all_bin_dir, 'TerracoinMasternodeTool_' + version_str + '.mac.zip'),  'TerracoinMasternodeTool.app'))
 elif os_type == 'linux':
     print('Compressing Linux executable')
-    os.system('tar -zcvf %s %s' % (os.path.join(all_bin_dir, 'DashMasternodeTool_' + version_str + '.linux.tar.gz'),  'DashMasternodeTool'))
+    os.system('tar -zcvf %s %s' % (os.path.join(all_bin_dir, 'TerracoinMasternodeTool_' + version_str + '.linux.tar.gz'),  'TerracoinMasternodeTool'))

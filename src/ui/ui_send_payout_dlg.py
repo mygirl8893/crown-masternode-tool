@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/Users/blogin/PycharmProjects/DMT-git/src/ui/ui_send_payout_dlg.ui'
+# Form implementation generated from reading ui file '/Users/blogin/PycharmProjects/TMT-git/src/ui/ui_send_payout_dlg.ui'
 #
 # Created by: PyQt5 UI code generator 5.9
 #
@@ -155,7 +155,7 @@ class Ui_SendPayoutDlg(object):
     def retranslateUi(self, SendPayoutDlg):
         _translate = QtCore.QCoreApplication.translate
         SendPayoutDlg.setWindowTitle(_translate("SendPayoutDlg", "Dialog"))
-        self.lblMessage.setText(_translate("SendPayoutDlg", "List of unspent transaction outputs (UTXO) assigned to Masternode addresses. You can transfer all or selected outputs to a new Dash address."))
+        self.lblMessage.setText(_translate("SendPayoutDlg", "List of unspent transaction outputs (UTXO) assigned to Masternode addresses. You can transfer all or selected outputs to a new Terracoin address."))
         self.lblSourceBip32Path.setText(_translate("SendPayoutDlg", "BIP32 path:"))
         self.btnLoadTransactions.setText(_translate("SendPayoutDlg", "Load transactions"))
         self.btnCheckAll.setToolTip(_translate("SendPayoutDlg", "Check all utxos"))
@@ -164,7 +164,7 @@ class Ui_SendPayoutDlg(object):
         self.lblAmountText.setText(_translate("SendPayoutDlg", "Amount to send:"))
         self.lblAmount.setText(_translate("SendPayoutDlg", "0"))
         self.label.setText(_translate("SendPayoutDlg", "Send to address:"))
-        self.label_2.setText(_translate("SendPayoutDlg", "Fee (Dash):"))
+        self.label_2.setText(_translate("SendPayoutDlg", "Fee (Terracoin):"))
         self.btnSend.setText(_translate("SendPayoutDlg", "Send"))
         self.btnClose.setText(_translate("SendPayoutDlg", "Close"))
 

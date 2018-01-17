@@ -23,10 +23,10 @@ class AboutDlg(QDialog, ui_about_dlg.Ui_AboutDlg, WndUtils):
     def setupUi(self):
         ui_about_dlg.Ui_AboutDlg.setupUi(self, self)
         self.setWindowTitle("About")
-        img = QPixmap(os.path.join(self.app_config.app_path, "img/dmt.png"))
+        img = QPixmap(os.path.join(self.app_config.app_path, "img/tmt.png"))
         img = img.scaled(QSize(64, 64))
         self.lblImage.setPixmap(img)
-        self.lblAppName.setText('Dash Masternode Tool ' + self.app_version_str)
+        self.lblAppName.setText('Terracoin Masternode Tool ' + self.app_version_str)
         self.textAbout.setOpenExternalLinks(True)
         self.textAbout.viewport().setAutoFillBackground(False)
         if sys.platform == 'win32':

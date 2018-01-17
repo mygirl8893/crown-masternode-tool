@@ -135,13 +135,13 @@ class UnknownError(Exception):
     pass
 
 
-class DashdConnectionError(Exception):
+class TerracoindConnectionError(Exception):
     def __init__(self, org_exception):
         Exception.__init__(org_exception)
         self.org_exception = org_exception
 
 
-class DashdSSH(object):
+class TerracoindSSH(object):
     def __init__(self, host, port, username, on_connection_broken_callback=None):
         self.host = host
         self.port = port
@@ -258,23 +258,23 @@ class DashdSSH(object):
         else:
             raise Exception('SSH not connected')
 
-    def find_dashd_config(self):
+    def find_terracoind_config(self):
         """
-        Try to read configuration of remote dash daemon. In particular we need parameters concering rpc
+        Try to read configuration of remote terracoin daemon. In particular we need parameters concering rpc
         configuration.
-        :return: tuple (dashd_running, dashd_config_found, dashd config file contents as dict)
+        :return: tuple (terracoind_running, terracoind_config_found, terracoind config file contents as dict)
                 or error string in error occured
         """
-        dashd_running = False
-        dashd_config_found = False
+        terracoind_running = False
+        terracoind_config_found = False
         if not self.ssh:
             raise Exception('SSH session not ready')
         try:
-            # find dashd process id if running
+            # find terracoind process id if running
             try:
-                pids = self.remote_command('ps -C "dashd" -o pid')
+                pids = self.remote_command('ps -C "terracoind" -o pid')
             except UnknownError:
-                raise Exception('is dashd running on the remote machine?')
+                raise Exception('is terracoind running on the remote machine?')
             pid = None
             if isinstance(pids, list):
                 pids = [pid.strip() for pid in pids]
@@ -284,41 +284,41 @@ class DashdSSH(object):
                 pid = pids[1]
             config = {}
             if pid:
-                dashd_running = True
-                # using dashd pid find its executable path and then .dashcore directory and finally dash.conf file
+                terracoind_running = True
+                # using terracoind pid find its executable path and then .terracoincore directory and finally terracoin.conf file
                 executables = self.remote_command('ls -l /proc/' + str(pid) + '/exe')
                 if executables and len(executables) >= 1:
                     elems = executables[0].split('->')
                     if len(elems) == 2:
                         executable = elems[1].strip()
-                        dashd_dir = os.path.dirname(executable)
-                        dash_conf_file = dashd_dir + '/.dashcore/dash.conf'
+                        terracoind_dir = os.path.dirname(executable)
+                        terracoin_conf_file = terracoind_dir + '/.terracoincore/terracoin.conf'
                         conf_lines = []
                         try:
-                            conf_lines = self.remote_command('cat ' + dash_conf_file)
+                            conf_lines = self.remote_command('cat ' + terracoin_conf_file)
                         except Exception as e:
                             # probably error no such file or directory
-                            # try to read dashd's cwd + cmdline
+                            # try to read terracoind's cwd + cmdline
                             cwd_lines = self.remote_command('ls -l /proc/' + str(pid) + '/cwd')
                             if cwd_lines:
                                 elems = cwd_lines[0].split('->')
                                 if len(elems) >= 2:
                                     cwd = elems[1]
-                                    dash_conf_file = cwd + '/.dashcore/dash.conf'
+                                    terracoin_conf_file = cwd + '/.terracoincore/terracoin.conf'
                                     try:
-                                        conf_lines = self.remote_command('cat ' + dash_conf_file)
+                                        conf_lines = self.remote_command('cat ' + terracoin_conf_file)
                                     except Exception as e:
                                         # second method did not suceed, so assume, that conf file is located
-                                        # i /home/<username>/.dashcore directory
-                                        dash_conf_file = '/home/' + self.username + '/.dashcore/dash.conf'
-                                        conf_lines = self.remote_command('cat ' + dash_conf_file)
+                                        # i /home/<username>/.terracoincore directory
+                                        terracoin_conf_file = '/home/' + self.username + '/.terracoincore/terracoin.conf'
+                                        conf_lines = self.remote_command('cat ' + terracoin_conf_file)
 
                         for line in conf_lines:
                             elems = [e.strip() for e in line.split('=')]
                             if len(elems) == 2:
                                 config[elems[0]] = elems[1]
-                        dashd_config_found = True
-            return dashd_running, dashd_config_found, config
+                        terracoind_config_found = True
+            return terracoind_running, terracoind_config_found, config
         except Exception as e:
             return str(e)
 
@@ -332,26 +332,26 @@ class DashdSSH(object):
             self.connected = False
 
 
-class DashdIndexException(JSONRPCException):
+class TerracoindIndexException(JSONRPCException):
     """
-    Exception for notifying, that dash daemon should have indexing option tuned on
+    Exception for notifying, that terracoin daemon should have indexing option tuned on
     """
     def __init__(self, parent_exception):
         JSONRPCException.__init__(self, parent_exception.error)
         self.message = self.message + \
-                       '\n\nMake sure the dash daemon you are connecting to has the following options enabled in ' \
-                       'its dash.conf:\n\n' + \
+                       '\n\nMake sure the terracoin daemon you are connecting to has the following options enabled in ' \
+                       'its terracoin.conf:\n\n' + \
                        'addressindex=1\n' + \
                        'spentindex=1\n' + \
                        'timestampindex=1\n' + \
                        'txindex=1\n\n' + \
-                       'Changing these parameters requires to execute dashd with "-reindex" option (linux: ./dashd -reindex)'
+                       'Changing these parameters requires to execute terracoind with "-reindex" option (linux: ./terracoind -reindex)'
 
 
 def control_rpc_call(func):
     """
     Decorator function for catching HTTPConnection timeout and then resetting the connection.
-    :param func: DashdInterface's method decorated
+    :param func: TerracoindInterface's method decorated
     """
     def catch_timeout_wrapper(*args, **kwargs):
         ret = None
@@ -383,21 +383,21 @@ def control_rpc_call(func):
                     except JSONRPCException as e:
                         logging.error('Error while calling of "' + str(func) + ' (2)". Details: ' + str(e))
                         if e.code == -5 and e.message == 'No information available for address':
-                            raise DashdIndexException(e)
+                            raise TerracoindIndexException(e)
                         elif e.error.get('message','').find('403 Forbidden'):
                             self.http_conn.close()
-                            raise DashdConnectionError(e)
+                            raise TerracoindConnectionError(e)
                         else:
                             self.http_conn.close()
 
                     except (socket.gaierror, ConnectionRefusedError, TimeoutError, socket.timeout,
                             NoValidConnectionsError) as e:
-                        # exceptions raised most likely by not functioning dashd node; try to switch to another node
+                        # exceptions raised most likely by not functioning terracoind node; try to switch to another node
                         # if there is any in the config
                         logging.error('Error while calling of "' + str(func) + ' (3)". Details: ' + str(e))
-                        raise DashdConnectionError(e)
+                        raise TerracoindConnectionError(e)
 
-                except DashdConnectionError as e:
+                except TerracoindConnectionError as e:
                     # try another net config if possible
                     logging.error('Error while calling of "' + str(func) + '" (4). Details: ' + str(e))
                     if not self.switch_to_next_config():
@@ -449,7 +449,7 @@ def json_cache_wrapper(func, intf, cache_file_ident):
     Wrapper for saving/restoring rpc-call results inside cache files.
     """
     def json_call_wrapper(*args, **kwargs):
-        cache_file = intf.config.cache_dir + '/insight_dash_' + cache_file_ident + '.json'
+        cache_file = intf.config.cache_dir + '/insight_terracoin_' + cache_file_ident + '.json'
 
         try:  # looking into cache first
             j = simplejson.load(open(cache_file))
@@ -471,7 +471,7 @@ def json_cache_wrapper(func, intf, cache_file_ident):
     return json_call_wrapper
 
 
-class DashdInterface(WndUtils):
+class TerracoindInterface(WndUtils):
     def __init__(self, config, window, connection=None, on_connection_begin_callback=None,
                  on_connection_try_fail_callback=None, on_connection_finished_callback=None):
         WndUtils.__init__(self, app_config=config)
@@ -522,7 +522,7 @@ class DashdInterface(WndUtils):
             db_correction_duration = 0.0
             logging.debug("Reading masternodes' data from DB")
             cur.execute("SELECT id, ident, status, protocol, payee, last_seen, active_seconds,"
-                        " last_paid_time, last_paid_block, IP from MASTERNODES where dmt_active=1")
+                        " last_paid_time, last_paid_block, IP from MASTERNODES where tmt_active=1")
             for row in cur.fetchall():
                 db_id = row[0]
                 ident = row[1]
@@ -574,7 +574,7 @@ class DashdInterface(WndUtils):
         self.connections = self.config.get_ordered_conn_list()
         self.cur_conn_index = 0
         if not len(self.connections):
-            raise Exception('There is no connections to Dash network enabled in the configuration.')
+            raise Exception('There is no connections to Terracoin network enabled in the configuration.')
         self.cur_conn_def = self.connections[self.cur_conn_index]
 
     def disconnect(self):
@@ -591,7 +591,7 @@ class DashdInterface(WndUtils):
 
     def switch_to_next_config(self):
         """
-        If there is another dashd config not used recently, switch to it. Called only when there was a problem
+        If there is another terracoind config not used recently, switch to it. Called only when there was a problem
         with current connection config.
         :return: True if successfully switched or False if there was no another config
         """
@@ -622,13 +622,13 @@ class DashdInterface(WndUtils):
 
     def open(self):
         """
-        Opens connection to dash RPC. If it fails, then the next enabled conn config will be used, if any exists.
+        Opens connection to terracoin RPC. If it fails, then the next enabled conn config will be used, if any exists.
         :return: True if successfully connected, False if user cancelled the operation. If all of the attempts 
             fail, then appropriate exception will be raised.
         """
         try:
             if not self.cur_conn_def:
-                raise Exception('There is no connections to Dash network enabled in the configuration.')
+                raise Exception('There is no connections to Terracoin network enabled in the configuration.')
 
             while True:
                 try:
@@ -641,7 +641,7 @@ class DashdInterface(WndUtils):
                     return False
                 except (socket.gaierror, ConnectionRefusedError, TimeoutError, socket.timeout,
                         NoValidConnectionsError) as e:
-                    # exceptions raised by not likely functioning dashd node; try to switch to another node
+                    # exceptions raised by not likely functioning terracoind node; try to switch to another node
                     # if there is any in the config
                     if not self.switch_to_next_config():
                         raise e  # couldn't use another conn config, raise exception
@@ -668,7 +668,7 @@ class DashdInterface(WndUtils):
 
     def open_internal(self):
         """
-        Try to establish connection to dash RPC daemon for current connection config.
+        Try to establish connection to terracoin RPC daemon for current connection config.
         :return: True, if connection successfully establishes, False if user Cancels the operation (not always 
             cancelling will be possible - only when user is prompted for a password).
         """
@@ -684,7 +684,7 @@ class DashdInterface(WndUtils):
             if self.cur_conn_def.use_ssh_tunnel:
                 # RPC over SSH
                 if self.ssh is None:
-                    self.ssh = DashdSSH(self.cur_conn_def.ssh_conn_cfg.host, self.cur_conn_def.ssh_conn_cfg.port,
+                    self.ssh = TerracoindSSH(self.cur_conn_def.ssh_conn_cfg.host, self.cur_conn_def.ssh_conn_cfg.port,
                                         self.cur_conn_def.ssh_conn_cfg.username)
                 try:
                     logging.debug('starting ssh.connect')
@@ -796,7 +796,7 @@ class DashdInterface(WndUtils):
     @control_rpc_call
     def issynchronized(self):
         if self.open():
-            # if connecting to HTTP(S) proxy do not check if dash daemon is synchronized
+            # if connecting to HTTP(S) proxy do not check if terracoin daemon is synchronized
             if self.cur_conn_def.is_http_proxy():
                 return True
             else:
@@ -862,7 +862,7 @@ class DashdInterface(WndUtils):
     @control_rpc_call
     def get_masternodelist(self, *args, data_max_age=MASTERNODES_CACHE_VALID_SECONDS):
         """
-        Returns masternode list, read from the Dash network or from the internal cache.
+        Returns masternode list, read from the Terracoin network or from the internal cache.
         :param args: arguments passed to the 'masternodelist' RPC call
         :param data_max_age: maximum age (in seconds) of the cached masternode data to used; if the
             cache is older than 'data_max_age', then an RPC call is performed to load newer masternode data;
@@ -932,7 +932,7 @@ class DashdInterface(WndUtils):
                     logging.info('Using cached masternodelist (data age: %s)' % str(int(time.time()) - last_read_time))
                     return self.masternodes
                 else:
-                    logging.info('Loading masternode list from Dash daemon...')
+                    logging.info('Loading masternode list from Terracoin daemon...')
                     mns = self.proxy.masternodelist(*args)
                     mns = parse_mns(mns)
                     logging.info('Finished loading masternode list')
@@ -958,8 +958,8 @@ class DashdInterface(WndUtils):
 
                                 if self.db_intf.db_active:
                                     cur.execute("INSERT INTO MASTERNODES(ident, status, protocol, payee, last_seen,"
-                                            " active_seconds, last_paid_time, last_paid_block, ip, dmt_active,"
-                                            " dmt_create_time) "
+                                            " active_seconds, last_paid_time, last_paid_block, ip, tmt_active,"
+                                            " tmt_create_time) "
                                             "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                                             (mn.ident, mn.status, mn.protocol, mn.payee, mn.lastseen,
                                              mn.activeseconds, mn.lastpaidtime, mn.lastpaidblock, mn.ip, 1,
@@ -977,7 +977,7 @@ class DashdInterface(WndUtils):
 
                             if not mn.marker:
                                 if self.db_intf.db_active:
-                                    cur.execute("UPDATE MASTERNODES set dmt_active=0, dmt_deactivation_time=?"
+                                    cur.execute("UPDATE MASTERNODES set tmt_active=0, tmt_deactivation_time=?"
                                                 "WHERE ID=?",
                                                 (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                                 mn.db_id))

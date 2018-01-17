@@ -27,15 +27,15 @@ import ssl
 import app_cache
 import app_utils
 import wnd_utils as wnd_utils
-import dash_utils
+import terracoin_utils
 from columns_cfg_dlg import ColumnsConfigDlg
 from common import AttrsProtected
-from dashd_intf import DashdIndexException
+from terracoind_intf import TerracoindIndexException
 from ui import ui_proposals
 from wnd_utils import WndUtils, CloseDialogException
 
 # Definition of how long the cached proposals information is valid. If it's valid, dialog
-# will display data from cache, instead of requesting them from a dash daemon, which is
+# will display data from cache, instead of requesting them from a terracoin daemon, which is
 # more time consuming.
 PROPOSALS_CACHE_VALID_SECONDS = 3600
 
@@ -206,7 +206,7 @@ class Proposal(AttrsProtected):
             self.set_value('payment_amount_total', amt * payment_months)
 
         if not self.get_value('title'):
-            # if title value is not set (it's an external attribute, from dashcentral) then copy value from the
+            # if title value is not set (it's an external attribute, from terracoincentral) then copy value from the
             # name column
             self.set_value('title', self.get_value('name'))
 
@@ -236,7 +236,7 @@ class Proposal(AttrsProtected):
 class VotingMasternode(AttrsProtected):
     def __init__(self, masternode, masternode_config):
         """ Stores information about masternodes for which user has ability to vote.
-        :param masternode: ref to an object storing mn information read from the network (dashd_intf.Masternode)
+        :param masternode: ref to an object storing mn information read from the network (terracoind_intf.Masternode)
         :param masternode_config: ref to an object storing mn user's configuration (app_config.MasterNodeConfig)
         """
         super().__init__()
@@ -250,13 +250,13 @@ class VotingMasternode(AttrsProtected):
 
 
 class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
-    def __init__(self, parent, dashd_intf):
+    def __init__(self, parent, terracoind_intf):
         QDialog.__init__(self, parent=parent)
         wnd_utils.WndUtils.__init__(self, parent.config)
         self.setWindowFlags(Qt.Window)
         self.main_wnd = parent
         self.finishing = False  # True if the dialog is closing (all thread operations will be stopped)
-        self.dashd_intf = dashd_intf
+        self.terracoind_intf = terracoind_intf
         self.db_intf = parent.config.db_intf
         self.columns = [
             ProposalColumn('no', 'No', True),
@@ -305,7 +305,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         self.governanceinfo = None
         self.last_superblock_time = None
         self.next_superblock_time = None
-        self.voting_deadline_passed = True  # True when current block number is >= next superblock - 1662
+        self.voting_deadline_passed = True  # True when current block number is >= next superblock - ((3 * 24 * 60) / 2)
         self.proposals_last_read_time = 0
         self.current_proposal = None
         self.propsModel = None
@@ -347,7 +347,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             for idx, mn in enumerate(self.main_wnd.config.masternodes):
                 mn_ident = mn.collateralTx + '-' + str(mn.collateralTxIndex)
                 if mn_ident:
-                    if dash_utils.privkey_valid(mn.privateKey):
+                    if terracoin_utils.privkey_valid(mn.privateKey):
                         if mn.privateKey not in pkeys:
                             self.add_voting_column(mn_ident, 'Vote (' + mn.name + ')', my_masternode=True,
                                                    insert_before_column=self.column_index_by_name('absolute_yes_count'))
@@ -364,7 +364,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                 cache_app_version = app_utils.version_str_to_number(cache_app_version)
 
                 # version 0.9.11 introduced column 'title' which displays a proposal's title downloaded from
-                # external source as dashcentral; if it's not possible, a proposal's name is displayed instead
+                # external source as terracoincentral; if it's not possible, a proposal's name is displayed instead
                 # column 'name' will be hidden only if the previously run version was lower than 0.9.11
                 if cache_app_version < app_utils.version_str_to_number('0.9.11'):
                     hide_name_column = True
@@ -755,7 +755,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         raise Exception('Invalid column name: ' + name)
 
     def read_proposals_from_network(self):
-        """ Reads proposals from the Dash network. """
+        """ Reads proposals from the Terracoin network. """
 
         def find_prop_data(prop_data, level=1):
             """ Find proposal dict inside a list extracted from DataString field. """
@@ -782,9 +782,9 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         try:
 
             self.display_message('Reading proposals data, please wait...')
-            logging.info('Reading proposals from the Dash network.')
+            logging.info('Reading proposals from the Terracoin network.')
             begin_time = time.time()
-            proposals_new = self.dashd_intf.gobject("list", "valid", "proposals")
+            proposals_new = self.terracoind_intf.gobject("list", "valid", "proposals")
             logging.info('Read proposals from network (gobject list). Count: %s, operation time: %s' %
                          (str(len(proposals_new)), str(time.time() - begin_time)))
 
@@ -858,14 +858,14 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                             if prop.marker:
                                 if not prop.db_id:
                                     # first, check if there is a proposal with the same hash in the database
-                                    # dashd sometimes does not return some proposals, so they are deactivated id the db
+                                    # terracoind sometimes does not return some proposals, so they are deactivated id the db
                                     hash = prop.get_value('hash')
                                     cur.execute('SELECT id from PROPOSALS where hash=?', (hash,))
                                     row = cur.fetchone()
                                     if row:
                                         prop.db_id = row[0]
                                         prop.modified = True
-                                        cur.execute('UPDATE PROPOSALS set dmt_active=1, dmt_deactivation_time=NULL '
+                                        cur.execute('UPDATE PROPOSALS set tmt_active=1, tmt_deactivation_time=NULL '
                                                     'WHERE id=?', (row[0],))
                                         logging.info('Proposal "%s" (db_id: %d) exists int the DB. Re-activating.' %
                                                      (hash, row[0]))
@@ -876,8 +876,8 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                                 " yes_count, absolute_yes_count, no_count, abstain_count, creation_time,"
                                                 " url, payment_address, type, hash, collateral_hash, f_blockchain_validity,"
                                                 " f_cached_valid, f_cached_delete, f_cached_funding, f_cached_endorsed, "
-                                                " object_type, is_valid_reason, dmt_active, dmt_create_time, "
-                                                " dmt_deactivation_time, dmt_voting_last_read_time)"
+                                                " object_type, is_valid_reason, tmt_active, tmt_create_time, "
+                                                " tmt_deactivation_time, tmt_voting_last_read_time)"
                                                 " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
                                                 (prop.get_value('name'),
                                                  prop.get_value('payment_start').strftime('%Y-%m-%d %H:%M:%S'),
@@ -941,7 +941,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                                         prop.db_id
                                                     ))
 
-                        # delete proposals which no longer exists in tha Dash network
+                        # delete proposals which no longer exists in tha Terracoin network
                         rows_removed = False
                         for prop_idx in reversed(range(len(self.proposals))):
                             if self.finishing:
@@ -952,7 +952,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                             if not prop.marker:
                                 logging.info('Deactivating proposal in the cache. Hash: %s, DB id: %s' %
                                               (prop.get_value('hash'), str(prop.db_id)))
-                                cur.execute("UPDATE PROPOSALS set dmt_active=0, dmt_deactivation_time=? WHERE id=?",
+                                cur.execute("UPDATE PROPOSALS set tmt_active=0, tmt_deactivation_time=? WHERE id=?",
                                             (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), prop.db_id))
 
                                 self.proposals_by_hash.pop(prop.get_value('hash'), 0)
@@ -991,16 +991,16 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             else:
                 # no proposals read from network - skip deactivating records because probably
                 # some network glitch occured
-                logging.warning('No proposals returned from dashd.')
+                logging.warning('No proposals returned from terracoind.')
             logging.info('Finished reading proposals data from network.')
 
         except CloseDialogException:
             logging.info('Closing the dialog.')
 
         except Exception as e:
-            logging.exception('Exception wile reading proposals from Dash network.')
+            logging.exception('Exception wile reading proposals from Terracoin network.')
             self.display_message('')
-            self.errorMsg('Error while reading proposals data from the Dash network: ' + str(e))
+            self.errorMsg('Error while reading proposals data from the Terracoin network: ' + str(e))
             raise
 
     def read_data_thread(self, ctrl):
@@ -1009,37 +1009,37 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         """
 
         try:
-            self.display_message('Connecting to Dash daemon, please wait...')
-            if not self.dashd_intf.open():
-                self.errorMsg('Dash daemon not connected')
+            self.display_message('Connecting to Terracoin daemon, please wait...')
+            if not self.terracoind_intf.open():
+                self.errorMsg('Terracoin daemon not connected')
             else:
                 try:
                     try:
                         self.display_message('Reading governance data, please wait...')
 
                         # get the date-time of the last superblock and calculate the date-time of the next one
-                        self.governanceinfo = self.dashd_intf.getgovernanceinfo()
+                        self.governanceinfo = self.terracoind_intf.getgovernanceinfo()
 
                         sb_last = self.governanceinfo.get('lastsuperblock')
                         sb_next = self.governanceinfo.get('nextsuperblock')
-                        # superblocks occur every 16616 blocks (approximately 28.8 days)
-                        cur_block = self.dashd_intf.getblockcount()
+                        # superblocks occur every 21600 blocks (approximately 30 days)
+                        cur_block = self.terracoind_intf.getblockcount()
 
-                        sb_last_hash = self.dashd_intf.getblockhash(sb_last)
-                        last_bh = self.dashd_intf.getblockheader(sb_last_hash)
+                        sb_last_hash = self.terracoind_intf.getblockhash(sb_last)
+                        last_bh = self.terracoind_intf.getblockheader(sb_last_hash)
                         self.last_superblock_time = last_bh['time']
                         self.next_superblock_time = 0
                         if cur_block > 0 and cur_block <= sb_next:
-                            cur_hash = self.dashd_intf.getblockhash(cur_block)
-                            cur_bh = self.dashd_intf.getblockheader(cur_hash)
-                            self.next_superblock_time = cur_bh['time'] + (sb_next - cur_block) * 2.5 * 60
+                            cur_hash = self.terracoind_intf.getblockhash(cur_block)
+                            cur_bh = self.terracoind_intf.getblockheader(cur_hash)
+                            self.next_superblock_time = cur_bh['time'] + (sb_next - cur_block) * 2 * 60
 
                         if self.next_superblock_time == 0:
-                            self.next_superblock_time = last_bh['time'] + (sb_next - sb_last) * 2.5 * 60
-                        deadline_block = sb_next - 1662
+                            self.next_superblock_time = last_bh['time'] + (sb_next - sb_last) * 2 * 60
+                        deadline_block = sb_next - ((3 * 24 * 60) / 2)
                         self.voting_deadline_passed = deadline_block <= cur_block < sb_next
 
-                        self.next_voting_deadline = self.next_superblock_time - (1662 * 2.5 * 60)
+                        self.next_voting_deadline = self.next_superblock_time - (((3 * 24 * 60) / 2) * 2 * 60)
                         next_sb_dt = datetime.datetime.fromtimestamp(self.next_superblock_time)
                         voting_deadline_dt = datetime.datetime.fromtimestamp(self.next_voting_deadline)
                         if self.voting_deadline_passed:
@@ -1056,7 +1056,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
 
                     except Exception as e:
                         logging.exception('Exception while reading governance info.')
-                        self.errorMsg("Coundn't read governanceinfo from the Dash network. "
+                        self.errorMsg("Coundn't read governanceinfo from the Terracoin network. "
                                       "Some features may not work correctly because of this. Details: " + str(e))
 
                     # get list of all masternodes
@@ -1070,7 +1070,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         if not ident in users_mn_configs_by_ident:
                             users_mn_configs_by_ident[ident] = mn_cfg
 
-                    mns = self.dashd_intf.get_masternodelist('full')
+                    mns = self.terracoind_intf.get_masternodelist('full')
                     self.masternodes = mns
                     self.mn_count = 0
                     statuses = {}
@@ -1116,9 +1116,9 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                 " yes_count, absolute_yes_count, no_count, abstain_count, creation_time,"
                                 " url, payment_address, type, hash, collateral_hash, f_blockchain_validity,"
                                 " f_cached_valid, f_cached_delete, f_cached_funding, f_cached_endorsed, object_type,"
-                                " is_valid_reason, dmt_active, dmt_create_time, dmt_deactivation_time, id,"
-                                " dmt_voting_last_read_time, owner, title, ext_attributes_loaded "
-                                "FROM PROPOSALS where dmt_active=1"
+                                " is_valid_reason, tmt_active, tmt_create_time, tmt_deactivation_time, id,"
+                                " tmt_voting_last_read_time, owner, title, ext_attributes_loaded "
+                                "FROM PROPOSALS where tmt_active=1"
                             )
 
                             data_modified = False
@@ -1202,7 +1202,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                 except CloseDialogException:
                     raise
 
-                except DashdIndexException as e:
+                except TerracoindIndexException as e:
                     self.errorMsg(str(e))
 
                 except Exception as e:
@@ -1216,7 +1216,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     self.read_proposals_from_network()
 
             if not self.finishing:
-                # read additional data from external sources, if configured (DashCentral)
+                # read additional data from external sources, if configured (TerracoinCentral)
                 proposals = []
                 if self.main_wnd.config.read_proposals_external_attributes:
                     for prop in self.proposals:
@@ -1247,7 +1247,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             self.display_message("")
 
     def read_external_attibutes(self, proposals):
-        """Method reads additional proposal attributes from an external source such as DashCentral.org
+        """Method reads additional proposal attributes from an external source such as TerracoinCentral.org
         :return True if proposals' external attributes has been updated.
         """
         self.display_message("Reading proposal external attributes, please wait...")
@@ -1258,7 +1258,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         url_err_retries = 2
 
         try:
-            url = self.main_wnd.config.dash_central_proposal_api
+            url = self.main_wnd.config.terracoin_central_proposal_api
             if url:
                 exceptions_occurred = False
                 for idx, prop in enumerate(proposals):
@@ -1369,7 +1369,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     if mn:
                         cur.execute("SELECT proposal_id, voting_time, voting_result "
                                     "FROM VOTING_RESULTS vr WHERE masternode_ident=? AND EXISTS "
-                                    "(SELECT 1 FROM PROPOSALS p where p.id=vr.proposal_id and p.dmt_active=1)",
+                                    "(SELECT 1 FROM PROPOSALS p where p.id=vr.proposal_id and p.tmt_active=1)",
                                     (mn_ident,))
                         for row in cur.fetchall():
                             if self.finishing:
@@ -1395,7 +1395,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
 
     def read_voting_from_network(self, force_reload_all, proposals):
         """
-        Retrieve from a Dash daemon voting results for all defined masternodes, for all visible Proposals.
+        Retrieve from a Terracoin daemon voting results for all defined masternodes, for all visible Proposals.
         :param force_reload_all: force reloading all votes and makre sure if a db cache contains all of them,
                if False, read only votes posted after last time when votes were read from the network
         :param proposals: list of proposals, which votes will be retrieved
@@ -1421,8 +1421,8 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             votes_added = []  # list of tuples (proposal, masternode, voting_time, voting_result, masternode ident),
             # that has been added (will be saved to the database cache)
 
-            if not self.dashd_intf.open():
-                self.errorMsg('Dash daemon not connected')
+            if not self.terracoind_intf.open():
+                self.errorMsg('Terracoin daemon not connected')
             else:
                 try:
                     proposals_updated = []  # list of proposals for which votes were loaded
@@ -1436,7 +1436,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
 
                         self.display_message('Reading voting data %d of %d' % (row_idx+1, len(proposals)))
                         tm_begin = time.time()
-                        votes = self.dashd_intf.gobject("getvotes", prop.get_value('hash'))
+                        votes = self.terracoind_intf.gobject("getvotes", prop.get_value('hash'))
                         network_duration += (time.time() - tm_begin)
 
                         for v_key in votes:
@@ -1542,7 +1542,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
 
                             prop.voting_last_read_time = time.time()
                             tm_begin = time.time()
-                            cur.execute("UPDATE PROPOSALS set dmt_voting_last_read_time=? where id=?",
+                            cur.execute("UPDATE PROPOSALS set tmt_voting_last_read_time=? where id=?",
                                         (int(time.time()), prop.db_id))
                             db_modified = True
                             db_oper_duration += (time.time() - tm_begin)
@@ -1561,7 +1561,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                 except CloseDialogException:
                     raise
 
-                except DashdIndexException as e:
+                except TerracoindIndexException as e:
                     logging.exception('Exception while retrieving voting data.')
                     self.errorMsg(str(e))
 
@@ -1638,7 +1638,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
 
         proposals = []
         if self.main_wnd.config.read_proposals_external_attributes:
-            # select proposals for which we read additional data from external sources as DashCentral.org
+            # select proposals for which we read additional data from external sources as TerracoinCentral.org
             for prop in self.proposals:
                 if not prop.ext_attributes_loaded:
                     proposals.append(prop)
@@ -1868,7 +1868,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                             </tr>
                             <tr class="main-row">
                                 <td class="first-col-label">Payment:</td>
-                                <td class="padding" style="white-space:nowrap"><span>%s Dash&#47;month (%s, %s Dash total)
+                                <td class="padding" style="white-space:nowrap"><span>%s Terracoin&#47;month (%s, %s Terracoin total)
                                     <br/><span class="inter-label">start - end:</span>&nbsp;&nbsp;%s - %s</span>
                                     <br/><span class="inter-label">address:</span>&nbsp;&nbsp;%s
                                 </td>
@@ -2355,8 +2355,8 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         """ Process votes for currently focused proposal. """
 
         if self.current_proposal:
-            if not self.dashd_intf.open():
-                self.errorMsg('Dash daemon not connected')
+            if not self.terracoind_intf.open():
+                self.errorMsg('Terracoin daemon not connected')
             else:
                 prop_hash = self.current_proposal.get_value('hash')
 
@@ -2382,14 +2382,14 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                             str(sig_time)
 
                         step = 2
-                        vote_sig = dash_utils.ecdsa_sign(serialize_for_sig, mn_info.masternode_config.privateKey)
+                        vote_sig = terracoin_utils.ecdsa_sign(serialize_for_sig, mn_info.masternode_config.privateKey)
 
                         self.current_proposal.apply_vote(mn_ident=mn_info.masternode.ident,
                                                          vote_timestamp=datetime.datetime.fromtimestamp(sig_time),
                                                          vote_result=vote.upper())
 
                         step =3
-                        v_res = self.dashd_intf.voteraw(masternode_tx_hash=mn_info.masternode_config.collateralTx,
+                        v_res = self.terracoind_intf.voteraw(masternode_tx_hash=mn_info.masternode_config.collateralTx,
                                                 masternode_tx_index=int(mn_info.masternode_config.collateralTxIndex),
                                                 governance_hash=prop_hash,
                                                 vote_signal='funding',
@@ -2430,7 +2430,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         # move back the 'last read' time to force reading vote data from the network
                         # next time and save it to the db
                         cur = self.db_intf.get_cursor()
-                        cur.execute("UPDATE PROPOSALS set dmt_voting_last_read_time=? where id=?",
+                        cur.execute("UPDATE PROPOSALS set tmt_voting_last_read_time=? where id=?",
                                     (int(time.time()) - VOTING_RELOAD_TIME, self.current_proposal.db_id))
                     except Exception:
                         logging.exception('Exception while saving configuration data.')
