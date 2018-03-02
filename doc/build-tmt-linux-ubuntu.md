@@ -1,8 +1,8 @@
-## Building the Dash Masternode Tool executable on Ubuntu Linux
+## Building the Terracoin Masternode Tool executable on Ubuntu Linux
 
 ### Method based on physical or virtual linux machine
 
-An Ubuntu distribution with Python 3.6 is required to build DMT. This example uses Ubuntu 17.10, which comes with an appropriate version installed by default. You can verify the Python version by typing:
+An Ubuntu distribution with Python 3.6 is required to build TMT. This example uses Ubuntu 17.10, which comes with an appropriate version installed by default. You can verify the Python version by typing:
 
 ```
 python3 --version
@@ -15,32 +15,32 @@ You should see a response similar to the following:
 After making sure that you have the correct Python version, execute the following commands from the terminal:
 
 ```
-[dmt@ubuntu /]# sudo apt-get update
-[dmt@ubuntu /]# sudo apt-get -y upgrade
-[dmt@ubuntu /]# sudo apt-get -y install libudev-dev libusb-1.0-0-dev libfox-1.6-dev autotools-dev autoconf automake libtool libpython3-all-dev python3-pip git
-[dmt@ubuntu /]# sudo pip3 install virtualenv
-[dmt@ubuntu /]# cd ~
-[dmt@ubuntu /]# mkdir dmt && cd dmt
-[dmt@ubuntu /]# virtualenv -p python3 venv
-[dmt@ubuntu /]# . venv/bin/activate
-[dmt@ubuntu /]# pip install --upgrade setuptools
-[dmt@ubuntu /]# git clone https://github.com/Bertrand256/dash-masternode-tool
-[dmt@ubuntu /]# cd dash-masternode-tool/
-[dmt@ubuntu /]# pip install -r requirements.txt
-[dmt@ubuntu /]# pyinstaller --distpath=../dist/linux --workpath=../dist/linux/build dash_masternode_tool.spec
+[tmt@ubuntu /]# sudo apt-get update
+[tmt@ubuntu /]# sudo apt-get -y upgrade
+[tmt@ubuntu /]# sudo apt-get -y install libudev-dev libusb-1.0-0-dev libfox-1.6-dev autotools-dev autoconf automake libtool libpython3-all-dev python3-pip git
+[tmt@ubuntu /]# sudo pip3 install virtualenv
+[tmt@ubuntu /]# cd ~
+[tmt@ubuntu /]# mkdir tmt && cd tmt
+[tmt@ubuntu /]# virtualenv -p python3 venv
+[tmt@ubuntu /]# . venv/bin/activate
+[tmt@ubuntu /]# pip install --upgrade setuptools
+[tmt@ubuntu /]# git clone https://github.com/TheSin-/terracoin-masternode-tool
+[tmt@ubuntu /]# cd terracoin-masternode-tool/
+[tmt@ubuntu /]# pip install -r requirements.txt
+[tmt@ubuntu /]# pyinstaller --distpath=../dist/linux --workpath=../dist/linux/build terracoin_masternode_tool.spec
 ```
 
 The following files will be created once the build has completed successfully:
 
-* Executable: `~/dmt/dist/linux/DashMasternodeTool`
-* Compressed executable: `~/dmt/dist/all/DashMasternodeTool_<verion_string>.linux.tar.gz`
+* Executable: `~/tmt/dist/linux/TerracoinMasternodeTool`
+* Compressed executable: `~/tmt/dist/all/TerracoinMasternodeTool_<verion_string>.linux.tar.gz`
 
 
 ### Method based on Docker
 
-This method uses a dedicated **docker image** configured to carry out an automated build process for *Dash Masternode Tool*. The advantage of this method is its simplicity and the fact that it does not make any changes in the list of installed apps/libraries on your physical/virtual machine. All necessary dependencies are installed inside the Docker container. The second important advantage is that compilation can also be carried out on Windows or macOS (if Docker is installed), but keep in mind that the result of the build will be a Linux executable.
+This method uses a dedicated **docker image** configured to carry out an automated build process for *Terracoin Masternode Tool*. The advantage of this method is its simplicity and the fact that it does not make any changes in the list of installed apps/libraries on your physical/virtual machine. All necessary dependencies are installed inside the Docker container. The second important advantage is that compilation can also be carried out on Windows or macOS (if Docker is installed), but keep in mind that the result of the build will be a Linux executable.
 
-> **Note: Skip steps 3 and 4 if you are not performing this procedure for the first time (building a newer version of DMT, for example)**
+> **Note: Skip steps 3 and 4 if you are not performing this procedure for the first time (building a newer version of TMT, for example)**
 
 #### 1. Create a new directory
 We will refer to this as the *working directory* in the remainder of this documentation.
@@ -51,12 +51,12 @@ We will refer to this as the *working directory* in the remainder of this docume
 cd <working_directory>
 ```
 
-#### 3. Install the *bertrand256/build-dmt:ubuntu* Docker image
+#### 3. Install the *thesin-/build-tmt:ubuntu* Docker image
 
 Skip this step if you have done this before. At any time, you can check whether the required image exists in your local machine by issuing following command:
 
 ```
-docker images bertrand256/build-dmt:ubuntu
+docker images thesin-/build-tmt:ubuntu
 ```
 
 The required image can be obtained in one of two ways:
@@ -66,40 +66,40 @@ The required image can be obtained in one of two ways:
 Execute the following command:
 
 ```
-docker pull bertrand256/build-dmt:ubuntu
+docker pull thesin-/build-tmt:ubuntu
 ```
 
-**Build the image yourself, using the Dockerfile file from the DMT project repository.** 
+**Build the image yourself, using the Dockerfile file from the TMT project repository.** 
 
-* Download the https://github.com/Bertrand256/dash-masternode-tool/blob/master/build/ubuntu/Dockerfile file and place it in the *working directory*
+* Download the https://github.com/TheSin-/terracoin-masternode-tool/blob/master/build/ubuntu/Dockerfile file and place it in the *working directory*
 * Execute the following command:
 ```
-docker build -t bertrand256/build-dmt:ubuntu .
+docker build -t thesin-/build-tmt:ubuntu .
 ```
 
 #### 4. Create a Docker container
 
-A Docker container is an instance of an image (similar to how an object is an instance of a class in the software development world), and it exists until you delete it. You can therefore skip this step if you have created the container before. To easily identify the container, we give it a specific name (dmtbuild) when it is created so you can easily check if it exists in your system.
+A Docker container is an instance of an image (similar to how an object is an instance of a class in the software development world), and it exists until you delete it. You can therefore skip this step if you have created the container before. To easily identify the container, we give it a specific name (tmtbuild) when it is created so you can easily check if it exists in your system.
 
 ```
-docker ps -a --filter name=dmtbuild --filter ancestor=bertrand256/build-dmt:ubuntu
+docker ps -a --filter name=tmtbuild --filter ancestor=thesin-/build-tmt:ubuntu
 ```
 Create the container:
 
 ``` 
-docker create --name dmtbuild -it bertrand256/build-dmt:ubuntu
+docker create --name tmtbuild -it thesin-/build-tmt:ubuntu
 ```
 
-#### 5. Build the Dash Masternode Tool executable
+#### 5. Build the Terracoin Masternode Tool executable
 
 ```
-docker start -ai dmtbuild
+docker start -ai tmtbuild
 ```
 
 #### 6. Copy the build result to your *working directory*
 
 ```
-docker cp dmtbuild:/root/dmt/dist/all dmt-executable
+docker cp tmtbuild:/root/tmt/dist/all tmt-executable
 ```
 
-This command completes the procedure. The `dmt-executable` directory inside your *working directory* will contain a compressed Dash Masternode Tool executable.
+This command completes the procedure. The `tmt-executable` directory inside your *working directory* will contain a compressed Terracoin Masternode Tool executable.

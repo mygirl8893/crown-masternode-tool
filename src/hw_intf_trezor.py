@@ -142,7 +142,7 @@ class MyTxApiInsight(TxApiInsight):
         return j
 
 
-TxApiDash = TxApiInsight(network='insight_dash', url='https://dash-bitcore1.trezor.io/api/')
+TxApiTerracoin = TxApiInsight(network='insight_terracoin', url='https://insight.terracoin.io/api/')
 
 
 def prepare_transfer_tx(main_ui, utxos_to_spend, dest_address, tx_fee):
@@ -154,8 +154,8 @@ def prepare_transfer_tx(main_ui, utxos_to_spend, dest_address, tx_fee):
     :param tx_fee: transaction fee
     :return: tuple (serialized tx, total transaction amount in satoshis)
     """
-    # tx_api = MyTxApiInsight('insight_dash', None, main_ui.dashd_intf, main_ui.config.cache_dir)
-    tx_api = TxApiDash
+    # tx_api = MyTxApiInsight('insight_terracoin', None, main_ui.terracoind_intf, main_ui.config.cache_dir)
+    tx_api = TxApiTerracoin
     client = main_ui.hw_client
     client.set_tx_api(tx_api)
     inputs = []

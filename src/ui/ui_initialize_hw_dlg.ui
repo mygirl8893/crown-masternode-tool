@@ -507,7 +507,7 @@
               </sizepolicy>
              </property>
              <property name="whatsThis">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check the link attached &amp;lt;a href=&amp;quot;dash.org&amp;quot;&amp;gt;dash.org&amp;lt;/a&amp;gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Check the link attached &amp;lt;a href=&amp;quot;terracoin.io&amp;quot;&amp;gt;terracoin.io&amp;lt;/a&amp;gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="text">
               <string>Use passphrase</string>
@@ -854,7 +854,7 @@
              <item>
               <widget class="QLabel" name="label_5">
                <property name="text">
-                <string>Dash addresses which will be available in the device after finishing the process:</string>
+                <string>Terracoin addresses which will be available in the device after finishing the process:</string>
                </property>
                <property name="wordWrap">
                 <bool>true</bool>
@@ -944,7 +944,7 @@
      <item>
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>&lt;a href=&quot;https://github.com/Bertrand256/dash-masternode-tool/blob/master/doc/hw-initialization-recovery.md&quot;&gt;Read the documentation on GitHub&lt;/a&gt;</string>
+        <string>&lt;a href=&quot;https://github.com/TheSin-/terracoin-masternode-tool/blob/master/doc/hw-initialization-recovery.md&quot;&gt;Read the documentation on GitHub&lt;/a&gt;</string>
        </property>
        <property name="openExternalLinks">
         <bool>true</bool>

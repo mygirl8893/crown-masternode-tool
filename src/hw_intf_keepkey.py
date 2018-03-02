@@ -134,7 +134,7 @@ class MyTxApiInsight(TxApiInsight):
             except:
                 pass
         try:
-            j = self.dashd_inf.getrawtransaction(resourceid, 1)
+            j = self.terracoind_inf.getrawtransaction(resourceid, 1)
         except Exception as e:
             raise
         if cache_file:
