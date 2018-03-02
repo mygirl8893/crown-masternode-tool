@@ -65,9 +65,9 @@ class AppConfig(object):
         self.defective_net_configs = []
 
         self.hw_type = HWType.trezor  # TREZOR, KEEPKEY, LEDGERNANOS
-        self.block_explorer_tx = 'https://chainz.cryptoid.info/terracoin/tx.dws?%TXID%'
-        self.block_explorer_addr = 'https://chainz.cryptoid.info/terracoin/address.dws?%ADDRESS%'
-        self.terracoin_central_proposal_api = 'https://www.terracoincentral.org/api/v1/proposal?hash=%HASH%'
+        self.block_explorer_tx = 'https://insight.terracoin.io/tx/%TXID%'
+        self.block_explorer_addr = 'https://insight.terracoin.io/address/%ADDRESS%'
+        self.terracoin_central_proposal_api = 'https://services.terracoin.io/api/v1/proposal?hash=%HASH%'
 
         self.check_for_updates = True
         self.backup_config_file = True

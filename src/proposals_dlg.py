@@ -206,7 +206,7 @@ class Proposal(AttrsProtected):
             self.set_value('payment_amount_total', amt * payment_months)
 
         if not self.get_value('title'):
-            # if title value is not set (it's an external attribute, from terracoincentral) then copy value from the
+            # if title value is not set (it's an external attribute, from Terracoin Services) then copy value from the
             # name column
             self.set_value('title', self.get_value('name'))
 
@@ -364,7 +364,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                 cache_app_version = app_utils.version_str_to_number(cache_app_version)
 
                 # version 0.9.11 introduced column 'title' which displays a proposal's title downloaded from
-                # external source as terracoincentral; if it's not possible, a proposal's name is displayed instead
+                # external source as Terracoin Services; if it's not possible, a proposal's name is displayed instead
                 # column 'name' will be hidden only if the previously run version was lower than 0.9.11
                 if cache_app_version < app_utils.version_str_to_number('0.9.11'):
                     hide_name_column = True
