@@ -23,7 +23,7 @@
    * [Changing a hardware wallet PIN/passphrase](#changing-a-hardware-wallet-pinpassphrase)
    * [Browsing and voting on proposals](doc/proposals.md)
    * [Hardware wallet initialization/recovery](doc/hw-initialization-recovery.md)
- * Building the DMT executables
+ * Building the TMT executables
     * [macOS](doc/build-tmt-mac.md)
     * [Windows](doc/build-tmt-windows.md)
     * Linux
