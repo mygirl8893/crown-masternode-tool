@@ -442,7 +442,7 @@
        <item>
         <widget class="QCheckBox" name="chbDownloadProposalExternalData">
          <property name="text">
-          <string>Download external proposal attributes (TerracoinCentral.org)</string>
+          <string>Download external proposal attributes (services.terracoin.io)</string>
          </property>
         </widget>
        </item>
