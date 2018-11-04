@@ -665,7 +665,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
 
                 # get terracoin address of the parent
                 address_n = [2147483692,  # 44'
-                             2147483653,  # 5'
+                             2147483731,  # 83'
                             ]
                 addr_of_cur_path = hw_intf.get_address(self, address_n)
                 b32cache = self.bip32_cache.get(addr_of_cur_path, None)
@@ -685,9 +685,9 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
 
                 for addr_to_find_bip32 in addresses:
                     if not found_adresses.get(addr_to_find_bip32):
-                        # check 10 addresses of account 0 (44'/5'/0'/0), then 10 addreses
-                        # of account 1 (44'/5'/1'/0) and so on until 9th account.
-                        # if not found, then check next 10 addresses of account 0 (44'/5'/0'/0)
+                        # check 10 addresses of account 0 (44'/83'/0'/0), then 10 addreses
+                        # of account 1 (44'/83'/1'/0) and so on until 9th account.
+                        # if not found, then check next 10 addresses of account 0 (44'/83'/0'/0)
                         # and so on; we assume here, that user rather puts collaterals
                         # under first addresses of subsequent accounts than under far addresses
                         # of the first account; if so, following iteration shuld be faster
@@ -704,7 +704,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                                     if ctrl.finish:
                                         break
                                     address_n = [2147483692,  # 44'
-                                                 2147483653,  # 5'
+                                                 2147483731,  # 83'
                                                  2147483648 + account_nr,  # 0' + account_nr
                                                  0,
                                                  (tenth_nr * 10) + index]

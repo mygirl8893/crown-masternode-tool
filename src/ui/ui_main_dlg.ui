@@ -467,7 +467,7 @@
               </size>
              </property>
              <property name="toolTip">
-              <string>BIP32 path of the 5000 TRC collateral (e.g. 44'/5'/0'/0/0)</string>
+              <string>BIP32 path of the 5000 TRC collateral (e.g. 44'/83'/0'/0/0)</string>
              </property>
              <property name="placeholderText">
               <string>BIP32 path</string>

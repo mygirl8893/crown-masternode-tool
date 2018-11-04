@@ -342,9 +342,9 @@ class AppConfig(object):
                                 cfg.port = '443'
                                 configuration_corrected = True
 
-                self.last_bip32_base_path = config.get(section, 'bip32_base_path', fallback="44'/5'/0'/0/0")
+                self.last_bip32_base_path = config.get(section, 'bip32_base_path', fallback="44'/83'/0'/0/0")
                 if not self.last_bip32_base_path:
-                    self.last_bip32_base_path = "44'/5'/0'/0/0"
+                    self.last_bip32_base_path = "44'/83'/0'/0/0"
                 self.bip32_recursive_search = config.getboolean(section, 'bip32_recursive', fallback=True)
                 self.hw_type = config.get(section, 'hw_type', fallback=HWType.trezor)
                 if self.hw_type not in (HWType.trezor, HWType.keepkey, HWType.ledger_nano_s):

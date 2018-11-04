@@ -19,17 +19,17 @@ utxos_to_spend = [
     {
         'txid': '85b65caa7b4dddc2d44e9d895067f903134b1714af323600a3fa4c2346f76603',
         'outputIndex': 1,
-        'bip32_path': "44'/5'/0'/0/0"
+        'bip32_path': "44'/83'/0'/0/0"
     },
     {
         'txid': '1e8597d93faebb1f9192c58baca5334c6738899391d76ecd6827bd253e285632',
         'outputIndex': 0,
-        'bip32_path': "44'/5'/0'/1/0"
+        'bip32_path': "44'/83'/0'/1/0"
     },
     {
         'txid': '739a009c472b302cc0a2517fa885bf9559b19d10efa51dcbf11749597ad25951',
         'outputIndex': 1,
-        'bip32_path': "44'/5'/0'/0/1"
+        'bip32_path': "44'/83'/0'/0/1"
     },
 ]
 
