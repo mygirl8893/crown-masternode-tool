@@ -1059,7 +1059,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         deadline_block = sb_next - ((3 * 24 * 60) / 2)
                         self.voting_deadline_passed = deadline_block <= cur_block < sb_next
 
-                        self.next_voting_deadline = self.next_superblock_time - (1662 * 2.5 * 60)
+                        self.next_voting_deadline = self.next_superblock_time - (2057 * 2 * 60)
                         self.next_voting_deadline -= time.timezone  # add a timezone correction
                         self.next_superblock_time -= time.timezone
                         next_sb_dt = datetime.datetime.utcfromtimestamp(self.next_superblock_time)
