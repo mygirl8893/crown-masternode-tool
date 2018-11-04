@@ -16,8 +16,8 @@ OP_CHECKSIG = b'\xAC'
 OP_EQUAL = b'\x87'
 
 
-P2PKH_PREFIXES = ['X']
-P2SH_PREFIXES = ['7']
+P2PKH_PREFIXES = ['1']
+P2SH_PREFIXES = ['3']
 
 
 def pubkey_to_address(pubkey):
