@@ -15,11 +15,8 @@ Configuration is based on ethereum-nginx-proxy, adapted to Dash requirements by 
 
 ### Configuration
 
-When version 0.9.5 or higher of the TMT application is run the first time, "public" connections will automatically be added to the configuration. Open TMT and click the `Configure` button. In the `Configuration` dialog you should see the following three connections:
- * https://alice.dash-masternode-tool.org:443
- * https://luna.dash-masternode-tool.org:443
- * https://suzy.dash-masternode-tool.org:443
- * https://test.stats.dash.org:8080
+When version 0.9.5 or higher of the TMT application is run the first time, "public" connections will automatically be added to the configuration. Open TMT and click the `Configure` button. In the `Configuration` dialog you should see the following connections:
+ * https://publicrpc1.terracoin.io:443
 
 ![Public connection configuration window](img/tmt-config-dlg-public.png)
 
