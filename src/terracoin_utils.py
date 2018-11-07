@@ -26,7 +26,7 @@ def pubkey_to_address(pubkey):
     """
     pubkey_bin = bytes.fromhex(pubkey)
     pub_hash = bitcoin.bin_hash160(pubkey_bin)
-    data = bytes([76]) + pub_hash
+    data = bytes([0]) + pub_hash
     checksum = bitcoin.bin_dbl_sha256(data)[0:4]
     return base58.b58encode(data + checksum)
 
@@ -41,7 +41,7 @@ def generate_privkey():
         privkey = bitcoin.random_key()
         decoded_private_key = bitcoin.decode_privkey(privkey, 'hex')
         valid = 0 < decoded_private_key < bitcoin.N
-    data = bytes([204]) + bytes.fromhex(privkey)
+    data = bytes([128]) + bytes.fromhex(privkey)
     checksum = bitcoin.bin_dbl_sha256(data)[0:4]
     return base58.b58encode(data + checksum)
 
@@ -89,7 +89,7 @@ def wif_to_privkey(string):
     wif_compressed = 52 == len(string)
     pvkeyencoded = base58.b58decode(string).hex()
     wifversion = pvkeyencoded[:2]
-    wif_prefix = 204
+    wif_prefix = 128
     checksum = pvkeyencoded[-8:]
 
     vs = bytes.fromhex(pvkeyencoded[:-8])
