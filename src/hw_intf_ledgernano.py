@@ -6,12 +6,12 @@ from btchip.btchipComm import getDongle
 from btchip.btchipUtils import compress_public_key
 from typing import List
 
-import dash_utils
+import crown_utils
 from common import CancelException
 from hw_common import clean_bip32_path, HwSessionInfo
 import wallet_common
 from wnd_utils import WndUtils
-from dash_utils import *
+from crown_utils import *
 from PyQt5.QtWidgets import QMessageBox
 import unicodedata
 from bip32utils import Base58
@@ -86,7 +86,7 @@ class btchip_dmt(btchip):
 
         params = []
         if transaction.extra_data:
-            # Dash DIP2 extra data: By appending data to the 'lockTime' transfer we force the device into the
+            # Crown DIP2 extra data: By appending data to the 'lockTime' transfer we force the device into the
             # BTCHIP_TRANSACTION_PROCESS_EXTRA mode, which gives us the opportunity to sneak with an additional
             # data block.
             if len(transaction.extra_data) > 255 - len(transaction.lockTime):
@@ -117,7 +117,7 @@ def process_ledger_exceptions(func):
         except BTChipException as e:
             logging.exception('Error while communicating with Ledger hardware wallet.')
             if (e.sw in (0x6d00, 0x6700)):
-                e.message += '\n\nMake sure the Dash app is running on your Ledger device.'
+                e.message += '\n\nMake sure the Crown app is running on your Ledger device.'
             elif (e.sw == 0x6982):
                 e.message += '\n\nMake sure you have entered the PIN on your Ledger device.'
             raise
@@ -373,11 +373,11 @@ def sign_tx(hw_session: HwSessionInfo, utxos_to_spend: List[wallet_common.UtxoTy
     # read previous transactins
     for utxo in utxos_to_spend:
         if utxo.txid not in rawtransactions:
-            tx = hw_session.dashd_intf.getrawtransaction(utxo.txid, 1, skip_cache=False)
+            tx = hw_session.crownd_intf.getrawtransaction(utxo.txid, 1, skip_cache=False)
             if tx and tx.get('hex'):
                 tx_raw = tx.get('hex')
             else:
-                tx_raw = hw_session.dashd_intf.getrawtransaction(utxo.txid, 0, skip_cache=False)
+                tx_raw = hw_session.crownd_intf.getrawtransaction(utxo.txid, 0, skip_cache=False)
 
             if tx_raw:
                 rawtransactions[utxo.txid] = tx_raw
@@ -410,7 +410,7 @@ def sign_tx(hw_session: HwSessionInfo, utxos_to_spend: List[wallet_common.UtxoTy
                     "extra_data_len (%d) does not match calculated length (%d)"
                     % (data["extraPayloadSize"], len(data["extraPayload"]) * 2)
                 )
-            prev_transaction.extra_data = dash_utils.num_to_varint(data["extraPayloadSize"]) + bytes.fromhex(
+            prev_transaction.extra_data = crown_utils.num_to_varint(data["extraPayloadSize"]) + bytes.fromhex(
                 data["extraPayload"])
         else:
             prev_transaction.extra_data = bytes()
@@ -454,7 +454,7 @@ def sign_tx(hw_session: HwSessionInfo, utxos_to_spend: List[wallet_common.UtxoTy
     new_transaction.version = bytearray([0x01, 0x00, 0x00, 0x00])
     for out in tx_outputs:
         output = bitcoinOutput()
-        output.script = compose_tx_locking_script(out.address, hw_session.app_config.dash_network)
+        output.script = compose_tx_locking_script(out.address, hw_session.app_config.crown_network)
         output.amount = int.to_bytes(out.satoshis, 8, byteorder='little')
         new_transaction.outputs.append(output)
 

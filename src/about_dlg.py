@@ -28,7 +28,7 @@ class AboutDlg(QDialog, ui_about_dlg.Ui_AboutDlg, WndUtils):
         img = QPixmap(os.path.join(self.app_config.app_dir, "img/dmt.png"))
         img = img.scaled(QSize(64, 64))
         self.lblImage.setPixmap(img)
-        self.lblAppName.setText('Dash Masternode Tool ' + self.app_version_str)
+        self.lblAppName.setText('Crown Masternode Tool ' + self.app_version_str)
         self.textAbout.setOpenExternalLinks(True)
         self.textAbout.viewport().setAutoFillBackground(False)
         if sys.platform == 'win32':

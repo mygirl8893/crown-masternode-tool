@@ -25,8 +25,8 @@ After making sure that you have the correct Python version, execute the followin
 [dmt@ubuntu /]# virtualenv -p python3.6 venv
 [dmt@ubuntu /]# . venv/bin/activate
 [dmt@ubuntu /]# pip install --upgrade setuptools
-[dmt@ubuntu /]# git clone https://github.com/Bertrand256/dash-masternode-tool
-[dmt@ubuntu /]# cd dash-masternode-tool/
+[dmt@ubuntu /]# git clone https://github.com/defunctec/crown-masternode-tool
+[dmt@ubuntu /]# cd crown-masternode-tool/
 [dmt@ubuntu /]# pip install -r requirements.txt
 [dmt@ubuntu /]# pyinstaller --distpath=../dist/linux --workpath=../dist/linux/build dash_masternode_tool.spec
 ```

@@ -31,7 +31,7 @@ from psw_cache import SshPassCache
 from common import AttrsProtected, CancelException
 
 
-log = logging.getLogger('dmt.dashd_intf')
+log = logging.getLogger('dmt.crownd_intf')
 
 
 try:
@@ -147,13 +147,13 @@ class UnknownError(Exception):
     pass
 
 
-class DashdConnectionError(Exception):
+class CrowndConnectionError(Exception):
     def __init__(self, org_exception):
         Exception.__init__(org_exception)
         self.org_exception = org_exception
 
 
-class DashdSSH(object):
+class CrowndSSH(object):
     def __init__(self, host, port, username, on_connection_broken_callback=None, auth_method: str = 'password',
                  private_key_path: str = ''):
         self.host = host
@@ -302,23 +302,23 @@ class DashdSSH(object):
         else:
             raise Exception('SSH not connected')
 
-    def find_dashd_config(self):
+    def find_crownd_config(self):
         """
-        Try to read configuration of remote dash daemon. In particular we need parameters concering rpc
+        Try to read configuration of remote crown daemon. In particular we need parameters concering rpc
         configuration.
-        :return: tuple (dashd_running, dashd_config_found, dashd config file contents as dict)
+        :return: tuple (crownd_running, crownd_config_found, crownd config file contents as dict)
                 or error string in error occured
         """
-        dashd_running = False
-        dashd_config_found = False
+        crownd_running = False
+        crownd_config_found = False
         if not self.ssh:
             raise Exception('SSH session not ready')
         try:
-            # find dashd process id if running
+            # find crownd process id if running
             try:
-                pids = self.remote_command('ps -C "dashd" -o pid')
+                pids = self.remote_command('ps -C "crownd" -o pid')
             except UnknownError:
-                raise Exception('is dashd running on the remote machine?')
+                raise Exception('is crownd running on the remote machine?')
             pid = None
             if isinstance(pids, list):
                 pids = [pid.strip() for pid in pids]
@@ -328,41 +328,41 @@ class DashdSSH(object):
                 pid = pids[1]
             config = {}
             if pid:
-                dashd_running = True
-                # using dashd pid find its executable path and then .dashcore directory and finally dash.conf file
+                crownd_running = True
+                # using crownd pid find its executable path and then .crowncore directory and finally crown.conf file
                 executables = self.remote_command('ls -l /proc/' + str(pid) + '/exe')
                 if executables and len(executables) >= 1:
                     elems = executables[0].split('->')
                     if len(elems) == 2:
                         executable = elems[1].strip()
-                        dashd_dir = os.path.dirname(executable)
-                        dash_conf_file = dashd_dir + '/.dashcore/dash.conf'
+                        crownd_dir = os.path.dirname(executable)
+                        crown_conf_file = crownd_dir + '/.crowncore/crown.conf'
                         conf_lines = []
                         try:
-                            conf_lines = self.remote_command('cat ' + dash_conf_file)
+                            conf_lines = self.remote_command('cat ' + crown_conf_file)
                         except Exception as e:
                             # probably error no such file or directory
-                            # try to read dashd's cwd + cmdline
+                            # try to read crownd's cwd + cmdline
                             cwd_lines = self.remote_command('ls -l /proc/' + str(pid) + '/cwd')
                             if cwd_lines:
                                 elems = cwd_lines[0].split('->')
                                 if len(elems) >= 2:
                                     cwd = elems[1]
-                                    dash_conf_file = cwd + '/.dashcore/dash.conf'
+                                    crown_conf_file = cwd + '/.crowncore/crown.conf'
                                     try:
-                                        conf_lines = self.remote_command('cat ' + dash_conf_file)
+                                        conf_lines = self.remote_command('cat ' + crown_conf_file)
                                     except Exception as e:
                                         # second method did not suceed, so assume, that conf file is located
-                                        # i /home/<username>/.dashcore directory
-                                        dash_conf_file = '/home/' + self.username + '/.dashcore/dash.conf'
-                                        conf_lines = self.remote_command('cat ' + dash_conf_file)
+                                        # i /home/<username>/.crowncore directory
+                                        crown_conf_file = '/home/' + self.username + '/.crowncore/crown.conf'
+                                        conf_lines = self.remote_command('cat ' + crown_conf_file)
 
                         for line in conf_lines:
                             elems = [e.strip() for e in line.split('=')]
                             if len(elems) == 2:
                                 config[elems[0]] = elems[1]
-                        dashd_config_found = True
-            return dashd_running, dashd_config_found, config
+                        crownd_config_found = True
+            return crownd_running, crownd_config_found, config
         except Exception as e:
             return str(e)
 
@@ -376,20 +376,20 @@ class DashdSSH(object):
             self.connected = False
 
 
-class DashdIndexException(JSONRPCException):
+class CrowndIndexException(JSONRPCException):
     """
-    Exception for notifying, that dash daemon should have indexing option tuned on
+    Exception for notifying, that crown daemon should have indexing option tuned on
     """
     def __init__(self, parent_exception):
         JSONRPCException.__init__(self, parent_exception.error)
         self.message = self.message + \
-                       '\n\nMake sure the dash daemon you are connecting to has the following options enabled in ' \
-                       'its dash.conf:\n\n' + \
+                       '\n\nMake sure the crown daemon you are connecting to has the following options enabled in ' \
+                       'its crown.conf:\n\n' + \
                        'addressindex=1\n' + \
                        'spentindex=1\n' + \
                        'timestampindex=1\n' + \
                        'txindex=1\n\n' + \
-                       'Changing these parameters requires to execute dashd with "-reindex" option (linux: ./dashd -reindex)'
+                       'Changing these parameters requires to execute crownd with "-reindex" option (linux: ./crownd -reindex)'
 
 
 def control_rpc_call(_func=None, *, encrypt_rpc_arguments=False, allow_switching_conns=True):
@@ -449,7 +449,7 @@ def control_rpc_call(_func=None, *, encrypt_rpc_arguments=False, allow_switching
                             # some time of inactivity; try to reconnect within the same connection configuration
                             log.warning('Error while calling of "' + str(func) + ' (1)". Details: ' + str(e))
                             if last_conn_reset_time:
-                                raise DashdConnectionError(e)  # switch to another config if possible
+                                raise CrowndConnectionError(e)  # switch to another config if possible
                             else:
                                 last_exception = e
                                 last_conn_reset_time = time.time()
@@ -457,23 +457,23 @@ def control_rpc_call(_func=None, *, encrypt_rpc_arguments=False, allow_switching
 
                         except (socket.gaierror, ConnectionRefusedError, TimeoutError, socket.timeout,
                                 NoValidConnectionsError) as e:
-                            # exceptions raised most likely by not functioning dashd node; try to switch to another node
+                            # exceptions raised most likely by not functioning crownd node; try to switch to another node
                             # if there is any in the config
                             log.warning('Error while calling of "' + str(func) + ' (3)". Details: ' + str(e))
-                            raise DashdConnectionError(e)
+                            raise CrowndConnectionError(e)
 
                         except JSONRPCException as e:
                             log.error('Error while calling of "' + str(func) + ' (2)". Details: ' + str(e))
                             err_message = e.error.get('message','').lower()
                             self.http_conn.close()
                             if e.code == -5 and e.message == 'No information available for address':
-                                raise DashdIndexException(e)
+                                raise CrowndIndexException(e)
                             elif err_message.find('502 bad gateway') >= 0 or err_message.find('unknown error') >= 0:
-                                raise DashdConnectionError(e)
+                                raise CrowndConnectionError(e)
                             else:
                                 raise
 
-                    except DashdConnectionError as e:
+                    except CrowndConnectionError as e:
                         # try another net config if possible
                         log.error('Error while calling of "' + str(func) + '" (4). Details: ' + str(e))
 
@@ -536,7 +536,7 @@ def json_cache_wrapper(func, intf, cache_file_ident, skip_cache=False,
     def json_call_wrapper(*args, **kwargs):
         nonlocal skip_cache, cache_file_ident, intf, func
 
-        fname = '/insight_dash_'
+        fname = '/insight_crown_'
         if intf.app_config.is_testnet():
             fname += 'testnet_'
 
@@ -566,7 +566,7 @@ def json_cache_wrapper(func, intf, cache_file_ident, skip_cache=False,
     return json_call_wrapper
 
 
-class DashdInterface(WndUtils):
+class CrowndInterface(WndUtils):
     def __init__(self, window,
                  on_connection_initiated_callback=None,
                  on_connection_failed_callback=None,
@@ -578,7 +578,7 @@ class DashdInterface(WndUtils):
         self.db_intf = None
         self.connections = []
         self.cur_conn_index = 0
-        self.cur_conn_def: Optional['DashNetworkConnectionCfg'] = None
+        self.cur_conn_def: Optional['CrownNetworkConnectionCfg'] = None
 
         # below is the connection with which particular RPC call has started; if connection is switched because of
         # problems with some nodes, switching stops if we close round and return to the starting connection
@@ -711,7 +711,7 @@ class DashdInterface(WndUtils):
 
     def switch_to_next_config(self):
         """
-        If there is another dashd config not used recently, switch to it. Called only when there was a problem
+        If there is another crownd config not used recently, switch to it. Called only when there was a problem
         with current connection config.
         :return: True if successfully switched or False if there was no another config
         """
@@ -742,13 +742,13 @@ class DashdInterface(WndUtils):
 
     def open(self):
         """
-        Opens connection to dash RPC. If it fails, then the next enabled conn config will be used, if any exists.
+        Opens connection to crown RPC. If it fails, then the next enabled conn config will be used, if any exists.
         :return: True if successfully connected, False if user cancelled the operation. If all of the attempts 
             fail, then appropriate exception will be raised.
         """
         try:
             if not self.cur_conn_def:
-                raise Exception('There is no connections to Dash network enabled in the configuration.')
+                raise Exception('There is no connections to Crown network enabled in the configuration.')
 
             while True:
                 try:
@@ -761,7 +761,7 @@ class DashdInterface(WndUtils):
                     return False
                 except (socket.gaierror, ConnectionRefusedError, TimeoutError, socket.timeout,
                         NoValidConnectionsError) as e:
-                    # exceptions raised by not likely functioning dashd node; try to switch to another node
+                    # exceptions raised by not likely functioning crownd node; try to switch to another node
                     # if there is any in the config
                     if not self.switch_to_next_config():
                         raise e  # couldn't use another conn config, raise exception
@@ -788,7 +788,7 @@ class DashdInterface(WndUtils):
 
     def open_internal(self):
         """
-        Try to establish connection to dash RPC daemon for current connection config.
+        Try to establish connection to crown RPC daemon for current connection config.
         :return: True, if connection successfully establishes, False if user Cancels the operation (not always 
             cancelling will be possible - only when user is prompted for a password).
         """
@@ -804,7 +804,7 @@ class DashdInterface(WndUtils):
             if self.cur_conn_def.use_ssh_tunnel:
                 # RPC over SSH
                 if self.ssh is None:
-                    self.ssh = DashdSSH(self.cur_conn_def.ssh_conn_cfg.host, self.cur_conn_def.ssh_conn_cfg.port,
+                    self.ssh = CrowndSSH(self.cur_conn_def.ssh_conn_cfg.host, self.cur_conn_def.ssh_conn_cfg.port,
                                         self.cur_conn_def.ssh_conn_cfg.username,
                                         auth_method=self.cur_conn_def.ssh_conn_cfg.auth_method,
                                         private_key_path=self.cur_conn_def.ssh_conn_cfg.private_key_path)
@@ -919,10 +919,10 @@ class DashdInterface(WndUtils):
             if verify_node:
                 node_under_testnet = info.get('testnet')
                 if self.app_config.is_testnet() and not node_under_testnet:
-                    raise Exception('This RPC node works under Dash MAINNET, but your current configuration is '
+                    raise Exception('This RPC node works under Crown MAINNET, but your current configuration is '
                                     'for TESTNET.')
                 elif self.app_config.is_mainnet() and node_under_testnet:
-                    raise Exception('This RPC node works under Dash TESTNET, but your current configuration is '
+                    raise Exception('This RPC node works under Crown TESTNET, but your current configuration is '
                                     'for MAINNET.')
             return info
         else:
@@ -962,7 +962,7 @@ class DashdInterface(WndUtils):
             raise Exception('Not connected')
 
     def read_protx_list(self):
-        last_read_time = app_cache.get_value(f'ProtxLastReadTime_{self.app_config.dash_network}', 0, int)
+        last_read_time = app_cache.get_value(f'ProtxLastReadTime_{self.app_config.crown_network}', 0, int)
 
         if not self.protx_by_mn_ident or (int(time.time()) - last_read_time) >= PROTX_CACHE_VALID_SECONDS:
 
@@ -1019,7 +1019,7 @@ class DashdInterface(WndUtils):
     def get_masternodelist(self, *args, data_max_age=MASTERNODES_CACHE_VALID_SECONDS,
                            protx_data_max_age=PROTX_CACHE_VALID_SECONDS) -> List[Masternode]:
         """
-        Returns masternode list, read from the Dash network or from the internal cache.
+        Returns masternode list, read from the Crown network or from the internal cache.
         :param args: arguments passed to the 'masternodelist' RPC call
         :param data_max_age: maximum age (in seconds) of the cached masternode data to used; if the
             cache is older than 'data_max_age', then an RPC call is performed to load newer masternode data;
@@ -1057,7 +1057,7 @@ class DashdInterface(WndUtils):
         if self.open():
 
             if len(args) == 1 and args[0] == 'json':
-                last_read_time = app_cache.get_value(f'MasternodesLastReadTime_{self.app_config.dash_network}', 0, int)
+                last_read_time = app_cache.get_value(f'MasternodesLastReadTime_{self.app_config.crown_network}', 0, int)
 
                 if self.masternodes and data_max_age > 0 and \
                    int(time.time()) - last_read_time < data_max_age:
@@ -1139,7 +1139,7 @@ class DashdInterface(WndUtils):
                                 self.masternodes_by_ident.pop(mn.ident,0)
                                 del self.masternodes[mn_index]
 
-                        app_cache.set_value(f'MasternodesLastReadTime_{self.app_config.dash_network}', int(time.time()))
+                        app_cache.set_value(f'MasternodesLastReadTime_{self.app_config.crown_network}', int(time.time()))
 
                     finally:
                         if db_modified:

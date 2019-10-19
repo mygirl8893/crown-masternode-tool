@@ -11,7 +11,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from app_defs import HWType, get_note_url
 from app_utils import SHA256, write_bytes_buf, write_int_list_buf, read_bytes_from_file, read_int_list_from_file
 from common import CancelException
-from dash_utils import num_to_varint, read_varint_from_file, bip32_path_n_to_string
+from crown_utils import num_to_varint, read_varint_from_file, bip32_path_n_to_string
 from hw_common import HwSessionInfo
 from hw_intf import hw_encrypt_value, hw_decrypt_value, hw_sign_message, get_address_and_pubkey, connect_hw, \
     disconnect_hw
@@ -158,7 +158,7 @@ def read_file_encrypted(file_name: str, ret_attrs: dict, hw_session: HwSessionIn
                                                            hw_connect_function=None,
                                                            hw_disconnect_function=None,
                                                            app_config=hw_session.app_config,
-                                                           dashd_intf=hw_session.dashd_intf)
+                                                           crownd_intf=hw_session.crownd_intf)
 
                                 hw_client_internal = connect_hw(hw_session=hw_session,
                                                                 device_id=None,

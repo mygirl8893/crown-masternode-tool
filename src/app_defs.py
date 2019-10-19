@@ -6,10 +6,10 @@ import collections
 import logging
 from typing import List
 
-APP_NAME_SHORT = 'DashMasternodeTool'
-APP_NAME_LONG = 'Dash Masternode Tool'
+APP_NAME_SHORT = 'CrownMasternodeTool'
+APP_NAME_LONG = 'Crown Masternode Tool'
 APP_DATA_DIR_NAME = '.dmt'
-PROJECT_URL = 'https://github.com/Bertrand256/dash-masternode-tool'
+PROJECT_URL = 'https://github.com/Bertrand256/crown-masternode-tool'
 FEE_DUFF_PER_BYTE = 1
 MIN_TX_FEE = 1000
 SCREENSHOT_MODE = False
@@ -57,7 +57,7 @@ def get_doc_url(doc_file_name):
 __KNOWN_LOGGERS = [
     KnownLoggerType(name='dmt.wallet_dlg', external=False),
     KnownLoggerType(name='dmt.bip44_wallet', external=False),
-    KnownLoggerType(name='dmt.dashd_intf', external=False),
+    KnownLoggerType(name='dmt.crownd_intf', external=False),
     KnownLoggerType(name='dmt.db_intf', external=False),
     KnownLoggerType(name='dmt.proposals', external=False),
     KnownLoggerType(name='dmt.ext_item_model', external=False),
