@@ -58,7 +58,7 @@ elif os_type == 'win32':
     if l:
         add_binary_file(l, '.')
 
-a = Analysis(['src/dash_masternode_tool.py'],
+a = Analysis(['src/crown_masternode_tool.py'],
              pathex=[base_dir],
              binaries=binary_files,
              datas=data_files,
