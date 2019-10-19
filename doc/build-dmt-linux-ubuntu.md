@@ -17,6 +17,7 @@ After making sure that you have the correct Python version, execute the followin
 ```
 [dmt@ubuntu /]# sudo apt-get update
 [dmt@ubuntu /]# sudo apt-get -y upgrade
+[dmt@ubuntu /]# sudo apt-get install libcurl4 -y
 [dmt@ubuntu /]# sudo apt-get -y install libudev-dev libusb-1.0-0-dev libfox-1.6-dev autotools-dev autoconf automake libtool libpython3-all-dev python3.6-dev python3-pip git cmake
 [dmt@ubuntu /]# sudo pip3 install virtualenv
 [dmt@ubuntu /]# sudo pip3 install --upgrade pip
@@ -28,7 +29,7 @@ After making sure that you have the correct Python version, execute the followin
 [dmt@ubuntu /]# git clone https://github.com/defunctec/crown-masternode-tool
 [dmt@ubuntu /]# cd crown-masternode-tool/
 [dmt@ubuntu /]# pip install -r requirements.txt
-[dmt@ubuntu /]# pyinstaller --distpath=../dist/linux --workpath=../dist/linux/build dash_masternode_tool.spec
+[dmt@ubuntu /]# pyinstaller --distpath=../dist/linux --workpath=../dist/linux/build crown_masternode_tool.spec
 ```
 
 The following files will be created once the build has completed successfully:
