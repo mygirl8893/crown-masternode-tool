@@ -2,7 +2,7 @@
 
 This solution is designed for non-technical users who may have difficulty configuring their own JSON-RPC node, or for those who do not want to waste their time repeating what others have done before and have made publicly available :-)
 
-From the user's point of view, the solution is based on several JSON-RPC nodes made available by the Crown community to the users of the *Crown Masternode Tool* and *crownmnb* apps. At the time of writing, one of the nodes (actually three, accessed under one shared IP address) was managed by @chaeplin, a very well-known Crown Core developer, and the other three by myself (@Bertrand256).
+From the user's point of view, the solution is based on several JSON-RPC nodes made available by the Crown community to the users of the *Crown Masternode Tool*.
 
 ## Technical information
 
