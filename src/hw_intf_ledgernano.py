@@ -17,7 +17,7 @@ import unicodedata
 from bip32utils import Base58
 
 
-class btchip_dmt(btchip):
+class btchip_cmt(btchip):
     def __init__(self, dongle):
         btchip.__init__(self, dongle)
 
@@ -133,7 +133,7 @@ def connect_ledgernano():
         logging.info('Ledger Nano S connected. Firmware version: %s, specialVersion: %s, compressedKeys: %s' %
                      (str(ver.get('version')), str(ver.get('specialVersion')), ver.get('compressedKeys')))
 
-        client = btchip_dmt(dongle)
+        client = btchip_cmt(dongle)
         return client
     except:
         dongle.close()

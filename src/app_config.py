@@ -282,7 +282,7 @@ class AppConfig(QObject):
         if not app_user_dir:
             app_user_dir = os.path.join(user_home_dir, APP_DATA_DIR_NAME + '-v' + str(CURRENT_CFG_FILE_VERSION))
             if not os.path.exists(app_user_dir):
-                prior_version_dirs = ['.dmt']
+                prior_version_dirs = ['.cmt']
                 # look for the data dir of the previous version
                 for d in prior_version_dirs:
                     old_user_data_dir = os.path.join(user_home_dir, d)
@@ -292,7 +292,7 @@ class AppConfig(QObject):
 
         self.data_dir = app_user_dir
         self.cache_dir = os.path.join(self.data_dir, 'cache')
-        cache_file_name = os.path.join(self.cache_dir, 'dmt_cache_v2.json')
+        cache_file_name = os.path.join(self.cache_dir, 'cmt_cache_v2.json')
 
         if migrate_config:
             try:
@@ -366,7 +366,7 @@ class AppConfig(QObject):
                 # if there was an error when migrating to a new configuration, use the old data directory
                 self.data_dir = old_user_data_dir
                 self.cache_dir = os.path.join(self.data_dir, 'cache')
-                cache_file_name = os.path.join(self.cache_dir, 'dmt_cache_v2.json')
+                cache_file_name = os.path.join(self.cache_dir, 'cmt_cache_v2.json')
 
         if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
@@ -406,7 +406,7 @@ class AppConfig(QObject):
 
         # setup logging
         self.log_dir = os.path.join(self.data_dir, 'logs')
-        self.log_file = os.path.join(self.log_dir, 'dmt.log')
+        self.log_file = os.path.join(self.log_dir, 'cmt.log')
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
 
@@ -493,15 +493,15 @@ class AppConfig(QObject):
 
     def configure_cache(self):
         if self.is_testnet():
-            db_cache_file_name = 'dmt_cache_testnet_v2.db'
+            db_cache_file_name = 'cmt_cache_testnet_v2.db'
         else:
-            db_cache_file_name = 'dmt_cache_v2.db'
+            db_cache_file_name = 'cmt_cache_v2.db'
         self.tx_cache_dir = os.path.join(self.cache_dir, 'tx-' + self.hw_coin_name)
         if not os.path.exists(self.tx_cache_dir):
             os.makedirs(self.tx_cache_dir)
             if self.is_testnet():
                 # move testnet json files to a subdir (don't do this for mainnet files
-                # util there most of users move to dmt v0.9.22
+                # util there most of users move to cmt v0.9.22
                 try:
                     for file in glob.glob(os.path.join(self.cache_dir, 'insight_crown_testnet*.json')):
                         shutil.move(file, self.tx_cache_dir)
@@ -532,7 +532,7 @@ class AppConfig(QObject):
                     logging.info('Cleared the cached votes because of the spork 15 activation')
                     cur.execute('delete from VOTING_RESULTS')
                     cur.execute('delete from LIVE_CONFIG')
-                    cur.execute('update proposals set dmt_voting_last_read_time=0')
+                    cur.execute('update proposals set cmt_voting_last_read_time=0')
                     self.db_intf.commit()
                     self.sig_display_message.emit(1000,
                                                   'Some of your voting results on proposals have been reset in '
@@ -821,7 +821,7 @@ class AppConfig(QObject):
                             else:
                                 # not existent rpc_encryption_pubkey parameter in the configuration file could mean
                                 # we are opwnninf the old configuration file or the parameter was deleted by the old
-                                # dmt version; if the connection belongs to the default connections, restore
+                                # cmt version; if the connection belongs to the default connections, restore
                                 # the RPC encryption key
                                 for c in self.default_rpc_connections:
                                     if c.get_conn_id() == cfg.get_conn_id():
@@ -1165,7 +1165,7 @@ class AppConfig(QObject):
                 if isinstance(l, logging.Logger):
                     l.setLevel(level)
         else:
-            # setting-up log level of external (non-dmt) loggers to avoid cluttering the log file
+            # setting-up log level of external (non-cmt) loggers to avoid cluttering the log file
             for lname in get_known_loggers():
                 if lname.external:
                     l = logging.getLogger(lname.name)

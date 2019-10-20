@@ -30,7 +30,7 @@ from wnd_utils import WndUtils, ProxyStyleNoFocusRect
 CACHE_ITEM_DETAILS_WORD_WRAP = 'TransactionDlg_DetailsWordWrap'
 
 
-log = logging.getLogger('dmt.transaction_dlg')
+log = logging.getLogger('cmt.transaction_dlg')
 
 
 class TransactionDlg(QDialog, Ui_TransactionDlg, WndUtils):

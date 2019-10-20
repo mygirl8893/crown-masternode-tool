@@ -47,7 +47,7 @@ NODE_TYPE_OWN = 2
 CACHE_ITEM_SHOW_FIELD_HINTS = 'RegMasternodeDlg_ShowFieldHints'
 
 
-log = logging.getLogger('dmt.reg_masternode')
+log = logging.getLogger('cmt.reg_masternode')
 
 
 class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUtils):
@@ -564,7 +564,7 @@ class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUt
         self.set_ctrl_message(self.lblVotingMsg, msg, style)
 
     def get_crown_node_type(self):
-        if self.rbDMTCrownNodeType.isChecked():
+        if self.rbCMTCrownNodeType.isChecked():
             return NODE_TYPE_PUBLIC_RPC
         elif self.rbOwnCrownNodeType.isChecked():
             return NODE_TYPE_OWN
@@ -1116,7 +1116,7 @@ class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUt
         self.previous_step()
 
     @pyqtSlot(bool)
-    def on_rbDMTCrownNodeType_toggled(self, active):
+    def on_rbCMTCrownNodeType_toggled(self, active):
         if active:
             self.upd_node_type_info()
 

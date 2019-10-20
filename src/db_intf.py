@@ -11,7 +11,7 @@ from typing import List
 import thread_utils
 
 
-log = logging.getLogger('dmt.db_intf')
+log = logging.getLogger('cmt.db_intf')
 
 
 class DBCache(object):
@@ -135,9 +135,9 @@ class DBCache(object):
             cur.execute("CREATE TABLE IF NOT EXISTS masternodes(id INTEGER PRIMARY KEY, ident TEXT, status TEXT,"
                         " protocol TEXT, payee TEXT, last_seen INTEGER, active_seconds INTEGER,"
                         " last_paid_time INTEGER, last_paid_block INTEGER, ip TEXT,"
-                        " dmt_active INTEGER, dmt_create_time TEXT, dmt_deactivation_time TEXT)")
+                        " cmt_active INTEGER, cmt_create_time TEXT, cmt_deactivation_time TEXT)")
 
-            cur.execute("CREATE INDEX IF NOT EXISTS IDX_masternodes_DMT_ACTIVE ON masternodes(dmt_active)")
+            cur.execute("CREATE INDEX IF NOT EXISTS IDX_masternodes_CMT_ACTIVE ON masternodes(cmt_active)")
             cur.execute("CREATE INDEX IF NOT EXISTS IDX_masternodes_IDENT ON masternodes(ident)")
 
             if not self.table_columns_exist('masternodes', ['protx_hash']):
@@ -155,8 +155,8 @@ class DBCache(object):
                         " no_count INTEGER, abstain_count INTEGER, creation_time TEXT, url TEXT, payment_address TEXT,"
                         " type INTEGER, hash TEXT,  collateral_hash TEXT, f_blockchain_validity INTEGER,"
                         " f_cached_valid INTEGER, f_cached_delete INTEGER, f_cached_funding INTEGER, "
-                        " f_cached_endorsed INTEGER, object_type INTEGER, is_valid_reason TEXT, dmt_active INTEGER, "
-                        " dmt_create_time TEXT, dmt_deactivation_time TEXT, dmt_voting_last_read_time INTEGER,"
+                        " f_cached_endorsed INTEGER, object_type INTEGER, is_valid_reason TEXT, cmt_active INTEGER, "
+                        " cmt_create_time TEXT, cmt_deactivation_time TEXT, cmt_voting_last_read_time INTEGER,"
                         " ext_attributes_loaded INTEGER, owner TEXT, title TEXT, ext_attributes_load_time INTEGER)")
 
             cur.execute("CREATE INDEX IF NOT EXISTS IDX_PROPOSALS_HASH ON PROPOSALS(hash)")
@@ -230,7 +230,7 @@ class DBCache(object):
             cur.execute("CREATE INDEX IF NOT EXISTS idx_address_4 ON address(tree_id)")
 
             # if tx.block_height == 0, the transaction has not yet been confirmed (it may be the transaction that
-            # has just been sent from dmt wallet or the transaction which appeared in the mempool); in this case
+            # has just been sent from cmt wallet or the transaction which appeared in the mempool); in this case
             # tx.block_timestamp indicates the moment when the transaction was added to the cache (it will be purged
             # if will not appear on the blockchain after a defined amount of time)
             cur.execute("CREATE TABLE IF NOT EXISTS tx(id INTEGER PRIMARY KEY, tx_hash TEXT, block_height INTEGER,"

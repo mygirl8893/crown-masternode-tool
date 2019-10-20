@@ -942,7 +942,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                                 found_testnet_support = False
 
                         if not found_testnet_support:
-                            url = get_note_url('DMT0002')
+                            url = get_note_url('CMT0002')
                             msg = f'Your hardware wallet device does not support Crown TESTNET ' \
                                   f'(<a href="{url}">see details</a>).'
                             self.errorMsg(msg)

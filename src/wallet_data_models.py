@@ -21,7 +21,7 @@ from bip44_wallet import Bip44Wallet, UNCONFIRMED_TX_BLOCK_HEIGHT
 from ext_item_model import TableModelColumn, ExtSortFilterTableModel
 from wallet_common import Bip44AccountType, Bip44AddressType, UtxoType, TxType
 
-log = logging.getLogger('dmt.wallet_dlg')
+log = logging.getLogger('cmt.wallet_dlg')
 
 FILTER_OR = 0
 FILTER_AND = 1

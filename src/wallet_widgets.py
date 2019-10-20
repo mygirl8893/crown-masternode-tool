@@ -33,7 +33,7 @@ CSV_SEPARATOR = ';'
 CACHE_ITEM_DATA_FILE_MRU_LIST = 'SendFundsDestination_DataFileMRUList'
 
 
-log = logging.getLogger('dmt.wallet_dlg')
+log = logging.getLogger('cmt.wallet_dlg')
 
 
 class SendFundsDestinationItem(QObject):

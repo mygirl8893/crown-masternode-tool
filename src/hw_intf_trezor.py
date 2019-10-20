@@ -35,7 +35,7 @@ import wallet_common
 from wnd_utils import WndUtils
 
 
-log = logging.getLogger('dmt.hw_intf_trezor')
+log = logging.getLogger('cmt.hw_intf_trezor')
 
 
 class TrezorUi(object):

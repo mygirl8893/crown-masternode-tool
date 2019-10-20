@@ -34,7 +34,7 @@ UNCONFIRMED_TX_BLOCK_HEIGHT = 99999999
 DEFAULT_TX_FETCH_PRIORITY = 1  # the higher the number to higher the priority
 ADDR_BALANCE_CONSISTENCY_CHECK_SECONDS = 3600
 
-log = logging.getLogger('dmt.bip44_wallet')
+log = logging.getLogger('cmt.bip44_wallet')
 
 
 class BreakFetchTransactionsException(Exception):

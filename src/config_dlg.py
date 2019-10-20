@@ -214,7 +214,7 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
             self.cboKeepkeyPassEncoding.setCurrentIndex(0)
         else:
             self.cboKeepkeyPassEncoding.setCurrentIndex(1)
-        note_url = get_note_url('DMTN0001')
+        note_url = get_note_url('CMTN0001')
         self.lblKeepkeyPassEncoding.setText(f'KepKey passphrase encoding (<a href="{note_url}">see</a>)')
 
         self.chbCheckForUpdates.setChecked(self.local_config.check_for_updates)

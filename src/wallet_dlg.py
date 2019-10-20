@@ -66,7 +66,7 @@ MAIN_VIEW_BIP44_ACCOUNTS = 1
 MAIN_VIEW_MASTERNODE_LIST = 2
 
 
-log = logging.getLogger('dmt.wallet_dlg')
+log = logging.getLogger('cmt.wallet_dlg')
 
 
 class WalletDlg(QDialog, ui_wallet_dlg.Ui_WalletDlg, WndUtils):

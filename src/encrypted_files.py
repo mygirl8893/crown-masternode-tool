@@ -18,7 +18,7 @@ from hw_intf import hw_encrypt_value, hw_decrypt_value, hw_sign_message, get_add
 from wnd_utils import WndUtils
 
 
-DMT_ENCRYPTED_DATA_PREFIX = b'DMTEF'
+CMT_ENCRYPTED_DATA_PREFIX = b'CMTEF'
 ENC_FILE_BLOCK_SIZE = 1000000
 
 
@@ -92,7 +92,7 @@ def write_file_encrypted(file_name: str, hw_session: HwSessionInfo, data: bytes)
 
     with open(file_name, 'wb') as f_ptr:
 
-        header = DMT_ENCRYPTED_DATA_PREFIX + \
+        header = CMT_ENCRYPTED_DATA_PREFIX + \
                  num_to_varint(protocol) + num_to_varint(hw_type_bin) + \
                  write_bytes_buf(bytearray(base64.b64encode(bytearray(label, 'utf-8')))) + \
                  write_bytes_buf(encrypted_key_bin) + \
@@ -126,8 +126,8 @@ def read_file_encrypted(file_name: str, ret_attrs: dict, hw_session: HwSessionIn
     try:
         with open(file_name, 'rb') as f_ptr:
 
-            data = f_ptr.read(len(DMT_ENCRYPTED_DATA_PREFIX))
-            if data == DMT_ENCRYPTED_DATA_PREFIX:
+            data = f_ptr.read(len(CMT_ENCRYPTED_DATA_PREFIX))
+            if data == CMT_ENCRYPTED_DATA_PREFIX:
                 ret_attrs['encrypted'] = True
 
                 protocol = read_varint_from_file(f_ptr)
@@ -198,7 +198,7 @@ def read_file_encrypted(file_name: str, ret_attrs: dict, hw_session: HwSessionIn
                             if pub_key_hash_hdr == pub_key_hash:
                                 break
 
-                            url = get_note_url('DMT0003')
+                            url = get_note_url('CMT0003')
                             if WndUtils.queryDlg(
                                     message='Inconsistency between encryption and decryption keys.\n\n' 
                                             'The reason may be using a different passphrase than it was used '

@@ -183,7 +183,7 @@ class CmdConsoleDlg(QDialog, ui_cmd_console_dlg.Ui_CmdConsoleDlg):
           Arguments:
             "module-name": "all" or a name of a module; to display list of all modules, enter `display modules` command
             "log-level": debug|info|warning|error|critical
-          Example: set loglevel all:info,dmt.bip44_wallet:debug  
+          Example: set loglevel all:info,cmt.bip44_wallet:debug  
             
         <b>set logformat "format-string"</b>
           Sets the format of log messages.

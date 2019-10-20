@@ -31,7 +31,7 @@ from psw_cache import SshPassCache
 from common import AttrsProtected, CancelException
 
 
-log = logging.getLogger('dmt.crownd_intf')
+log = logging.getLogger('cmt.crownd_intf')
 
 
 try:
@@ -432,7 +432,7 @@ def control_rpc_call(_func=None, *, encrypt_rpc_arguments=False, allow_switching
                                                                         algorithm=hashes.SHA256(),
                                                                         label=None))
                                         encrypted_parts.append(ciphertext.hex())
-                                    args = (args[0], 'DMTENCRYPTEDV1') + tuple(encrypted_parts)
+                                    args = (args[0], 'CMTENCRYPTEDV1') + tuple(encrypted_parts)
                                     log.info(
                                         'Arguments of the "%s" call have been encrypted with the RSA public key of '
                                         'the RPC node.', func.__name__)
@@ -638,7 +638,7 @@ class CrowndInterface(WndUtils):
             db_correction_duration = 0.0
             log.debug("Reading masternodes' data from DB")
             cur.execute("SELECT id, ident, status, payee, last_seen, active_seconds,"
-                        " last_paid_time, last_paid_block, IP, queue_position from MASTERNODES where dmt_active=1")
+                        " last_paid_time, last_paid_block, IP, queue_position from MASTERNODES where cmt_active=1")
             for row in cur.fetchall():
                 db_id = row[0]
                 ident = row[1]
@@ -1091,7 +1091,7 @@ class CrowndInterface(WndUtils):
                                     cur.execute(
                                         "INSERT INTO MASTERNODES(ident, status, payee, last_seen,"
                                         " active_seconds, last_paid_time, last_paid_block, ip, protx_hash, "
-                                        " registered_height, dmt_active, dmt_create_time, queue_position) "
+                                        " registered_height, cmt_active, cmt_create_time, queue_position) "
                                         "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                                         (mn.ident, mn.status, mn.payee, mn.lastseen,
                                          mn.activeseconds, mn.lastpaidtime, mn.lastpaidblock, mn.ip, mn.protx_hash,
@@ -1132,7 +1132,7 @@ class CrowndInterface(WndUtils):
 
                             if not mn.marker:
                                 if self.db_intf.db_active:
-                                    cur.execute("UPDATE MASTERNODES set dmt_active=0, dmt_deactivation_time=?"
+                                    cur.execute("UPDATE MASTERNODES set cmt_active=0, cmt_deactivation_time=?"
                                                 "WHERE ID=?",
                                                 (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), mn.db_id))
                                     db_modified = True
@@ -1346,9 +1346,9 @@ class CrowndInterface(WndUtils):
             raise Exception('Not connected')
 
     @control_rpc_call
-    def checkfeaturesupport(self, feature_name: str, dmt_version: str, *args) -> Dict:
+    def checkfeaturesupport(self, feature_name: str, cmt_version: str, *args) -> Dict:
         if self.open():
-            return self.proxy.checkfeaturesupport(feature_name, dmt_version)
+            return self.proxy.checkfeaturesupport(feature_name, cmt_version)
         else:
             raise Exception('Not connected')
 

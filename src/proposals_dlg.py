@@ -76,7 +76,7 @@ CACHE_ITEM_ONLY_ONLY_NEW_PROPOSALS = 'ProposalsDlg_OnlyNewProposals'
 CACHE_ITEM_ONLY_ONLY_NOT_VOTED_PROPOSALS = 'ProposalsDlg_OnlyNotVotedProposals'
 
 
-log = logging.getLogger('dmt.proposals')
+log = logging.getLogger('cmt.proposals')
 
 
 class ProposalColumn(TableModelColumn):
@@ -938,7 +938,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                     if row:
                                         prop.db_id = row[0]
                                         prop.modified = True
-                                        cur.execute('UPDATE PROPOSALS set dmt_active=1, dmt_deactivation_time=NULL '
+                                        cur.execute('UPDATE PROPOSALS set cmt_active=1, cmt_deactivation_time=NULL '
                                                     'WHERE id=?', (row[0],))
                                         log.info('Proposal "%s" (db_id: %d) exists int the DB. Re-activating.' %
                                                      (hash, row[0]))
@@ -949,8 +949,8 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                                 " yes_count, absolute_yes_count, no_count, abstain_count, creation_time,"
                                                 " url, payment_address, type, hash, collateral_hash, f_blockchain_validity,"
                                                 " f_cached_valid, f_cached_delete, f_cached_funding, f_cached_endorsed, "
-                                                " object_type, is_valid_reason, dmt_active, dmt_create_time, "
-                                                " dmt_deactivation_time, dmt_voting_last_read_time)"
+                                                " object_type, is_valid_reason, cmt_active, cmt_create_time, "
+                                                " cmt_deactivation_time, cmt_voting_last_read_time)"
                                                 " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
                                                 (prop.get_value('name'),
                                                  prop.get_value('payment_start').strftime('%Y-%m-%d %H:%M:%S'),
@@ -1025,7 +1025,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                             if not prop.marker:
                                 log.info('Deactivating proposal in the cache. Hash: %s, DB id: %s' %
                                               (prop.get_value('hash'), str(prop.db_id)))
-                                cur.execute("UPDATE PROPOSALS set dmt_active=0, dmt_deactivation_time=? WHERE id=?",
+                                cur.execute("UPDATE PROPOSALS set cmt_active=0, cmt_deactivation_time=? WHERE id=?",
                                             (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), prop.db_id))
 
                                 self.proposals_by_hash.pop(prop.get_value('hash'), 0)
@@ -1244,10 +1244,10 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                 " yes_count, absolute_yes_count, no_count, abstain_count, creation_time,"
                                 " url, payment_address, type, hash, collateral_hash, f_blockchain_validity,"
                                 " f_cached_valid, f_cached_delete, f_cached_funding, f_cached_endorsed, object_type,"
-                                " is_valid_reason, dmt_active, dmt_create_time, dmt_deactivation_time, id,"
-                                " dmt_voting_last_read_time, owner, title, ext_attributes_loaded, "
+                                " is_valid_reason, cmt_active, cmt_create_time, cmt_deactivation_time, id,"
+                                " cmt_voting_last_read_time, owner, title, ext_attributes_loaded, "
                                 "ext_attributes_load_time "
-                                "FROM PROPOSALS where dmt_active=1"
+                                "FROM PROPOSALS where cmt_active=1"
                             )
 
                             data_modified = False
@@ -1541,7 +1541,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     if mn:
                         cur.execute("SELECT proposal_id, voting_time, voting_result "
                                     "FROM VOTING_RESULTS vr WHERE masternode_ident=? AND EXISTS "
-                                    "(SELECT 1 FROM PROPOSALS p where p.id=vr.proposal_id and p.dmt_active=1)",
+                                    "(SELECT 1 FROM PROPOSALS p where p.id=vr.proposal_id and p.cmt_active=1)",
                                     (mn_ident,))
                         for row in cur.fetchall():
                             if self.finishing:
@@ -1771,7 +1771,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
 
                                 prop.voting_last_read_time = time.time()
                                 tm_begin = time.time()
-                                cur.execute("UPDATE PROPOSALS set dmt_voting_last_read_time=? where id=?",
+                                cur.execute("UPDATE PROPOSALS set cmt_voting_last_read_time=? where id=?",
                                             (int(time.time()), prop.db_id))
                                 db_modified = True
                                 db_oper_duration += (time.time() - tm_begin)
@@ -2742,7 +2742,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     # move back the 'last read' time to force reading vote data from the network
                     # next time and save it to the db
                     for p in successful_proposal_list:
-                        cur.execute("UPDATE PROPOSALS set dmt_voting_last_read_time=? where id=?",
+                        cur.execute("UPDATE PROPOSALS set cmt_voting_last_read_time=? where id=?",
                                     (int(time.time()) - VOTING_RELOAD_TIME, p.db_id))
                 except Exception:
                     log.exception('Exception while saving configuration data.')
