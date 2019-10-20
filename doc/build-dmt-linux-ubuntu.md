@@ -22,7 +22,7 @@ After making sure that you have the correct Python version, execute the followin
 [dmt@ubuntu /]# sudo pip3 install virtualenv
 [dmt@ubuntu /]# sudo pip3 install --upgrade pip
 [dmt@ubuntu /]# cd ~
-[dmt@ubuntu /]# mkdir dmt && cd dmt
+[dmt@ubuntu /]# mkdir cmt && cd cmt
 [dmt@ubuntu /]# virtualenv -p python3.6 venv
 [dmt@ubuntu /]# . venv/bin/activate
 [dmt@ubuntu /]# pip install --upgrade setuptools
