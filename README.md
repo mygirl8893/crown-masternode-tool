@@ -4,6 +4,14 @@ related to starting masternodes. It will be improved according to the resources 
 
 # Crown Masternode Tool (CMT)
 
+## Note
+
+The Crown network supports 2 kinds of incentivised nodes: masternodes and systemnodes. At this time the only difference between them is the amount of collateral required:
+ * 10000 for a Masternode
+ *   500 fir a Systemnode
+
+This README uses the term "masternode" to refer to both kinds of node and the Crown Masternode Tool provides identical functionality for both kinds of node.
+ 
 ## Contents
 
  * [Masternodes](#masternodes)
@@ -44,7 +52,7 @@ Crown masternodes are full nodes which are incentivized by receiving a share of 
 
 A server with the Crown daemon software installed will operate as a Crown full node, but before the rest of the network accepts it as a legitimate masternode, one more thing must happen: the person controlling the node must prove that they are also in control of the private key to the node's 10000 Crown *collateral*. This is achieved by sending a special message to the network (`start masternode` message), signed by this private key.
 
-This action can be carried out using the *Crown Core* reference software client. As can be expected, this requires sending 10000 Crown to an address controlled by the *Crown Core* wallet. After the recent increase in the value of Crown and a burst in the amount of malware distributed over the Internet, you do not have to be paranoid to conclude that keeping large amounts of funds in a software wallet is not the most secure option. For these reasons, it is highly recommended to use a **hardware wallet** for this purpose.
+This action can be carried out using the *Crown Core* reference software client. As can be expected, this requires sending 10000 Crown to an address controlled by the *Crown Core* wallet. In view of the amount of malware distributed over the Internet, you do not have to be paranoid to conclude that keeping large amounts of funds in a software wallet is not the most secure option. For these reasons, it is highly recommended to use a **hardware wallet** for this purpose.
 
 # Crown Masternode Tool
 
