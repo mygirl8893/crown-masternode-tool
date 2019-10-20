@@ -20,7 +20,7 @@ CACHE_ITEM_SHOW_COMMANDS = 'UpdMnRegistrarDlg_ShowCommands'
 class UpdMnRegistrarDlg(QDialog, ui_upd_mn_registrar_dlg.Ui_UpdMnRegistrarDlg, WndUtils):
     def __init__(self,
                  main_dlg,
-                 config: AppConfig,
+                 app_config: AppConfig,
                  dashd_intf: DashdInterface,
                  masternode: MasternodeConfig,
                  on_upd_success_callback: Callable,
@@ -29,10 +29,10 @@ class UpdMnRegistrarDlg(QDialog, ui_upd_mn_registrar_dlg.Ui_UpdMnRegistrarDlg, W
                  show_upd_voting: bool):
         QDialog.__init__(self, main_dlg)
         ui_upd_mn_registrar_dlg.Ui_UpdMnRegistrarDlg.__init__(self)
-        WndUtils.__init__(self, main_dlg.config)
+        WndUtils.__init__(self, main_dlg.app_config)
         self.main_dlg = main_dlg
         self.masternode = masternode
-        self.app_config = config
+        self.app_config = app_config
         self.dashd_intf = dashd_intf
         self.on_upd_success_callback = on_upd_success_callback
         self.dmn_operator_key_type = InputKeyType.PRIVATE
@@ -196,25 +196,22 @@ class UpdMnRegistrarDlg(QDialog, ui_upd_mn_registrar_dlg.Ui_UpdMnRegistrarDlg, W
 
         self.lblPayoutAddress.setVisible(self.show_upd_payout)
         self.edtPayoutAddress.setVisible(self.show_upd_payout)
-        self.lblPayoutAddressMsg.setVisible(self.show_upd_payout and bool(self.lblPayoutAddressMsg.text()))
-        self.linePayoutAddress.setVisible(self.show_upd_payout and bool(self.lblPayoutAddressMsg.text()))
 
         self.lblOperatorKey.setVisible(self.show_upd_operator)
         self.edtOperatorKey.setVisible(self.show_upd_operator)
-        self.lblOperatorKeyMsg.setVisible(self.show_upd_operator and bool(self.lblOperatorKeyMsg.text()))
-        self.lineOperatorKey.setVisible(self.show_upd_operator and bool(self.lblOperatorKeyMsg.text()))
         self.btnGenerateOperatorKey.setVisible(self.show_upd_operator and
                                                self.dmn_operator_key_type == InputKeyType.PRIVATE)
 
         self.lblVotingKey.setVisible(self.show_upd_voting)
         self.edtVotingKey.setVisible(self.show_upd_voting)
-        self.lblVotingKeyMsg.setVisible(self.show_upd_voting and bool(self.lblVotingKeyMsg.text()))
         self.btnGenerateVotingKey.setVisible(self.show_upd_voting and self.dmn_voting_key_type == InputKeyType.PRIVATE)
 
         if self.show_manual_commands:
-            self.lblManualCommands.setText('<a href="hide">Hide commands for manual execution</a>')
+            self.lblManualCommands.setText('<a style="text-decoration:none" '
+                                           'href="hide">Hide commands for manual execution</a>')
         else:
-            self.lblManualCommands.setText('<a href="show">Show commands for manual execution</a>')
+            self.lblManualCommands.setText('<a style="text-decoration:none" '
+                                           'href="show">Show commands for manual execution</a>')
 
         self.edtManualCommands.setVisible(self.show_manual_commands)
 
@@ -387,15 +384,6 @@ class UpdMnRegistrarDlg(QDialog, ui_upd_mn_registrar_dlg.Ui_UpdMnRegistrarDlg, W
             self.dmn_prev_voting_address == self.dmn_new_voting_address:
             WndUtils.warnMsg('Nothing is changed compared to the data stored in the Dash network.')
         else:
-            if self.dashd_intf.is_current_connection_public():
-                active = self.app_config.feature_update_registrar_automatic.get_value()
-                if not active:
-                    msg = self.app_config.feature_update_registrar_automatic.get_message()
-                    if not msg:
-                        msg = 'The functionality of the automatic execution of the update_registrar command on the ' \
-                              '"public" RPC nodes is inactive. Use the manual method or contact the program author ' \
-                              'for details.'
-                    raise Exception(msg)
             self.send_upd_tx()
 
     def send_upd_tx(self):
@@ -419,7 +407,30 @@ class UpdMnRegistrarDlg(QDialog, ui_upd_mn_registrar_dlg.Ui_UpdMnRegistrarDlg, W
                       self.dmn_new_payout_address,
                       funding_address]
 
-            if not self.dashd_intf.is_current_connection_public():
+            try:
+                upd_reg_support = self.dashd_intf.checkfeaturesupport('protx_update_registrar',
+                                                                      self.app_config.app_version)
+                if not upd_reg_support.get('enabled'):
+                    if upd_reg_support.get('message'):
+                        raise Exception(upd_reg_support.get('message'))
+                    else:
+                        raise Exception('The \'protx_update_registrar\' function is not supported by the RPC node '
+                                        'you are connected to.')
+                public_proxy_node = True
+
+                active = self.app_config.feature_update_registrar_automatic.get_value()
+                if not active:
+                    msg = self.app_config.feature_update_registrar_automatic.get_message()
+                    if not msg:
+                        msg = 'The functionality of the automatic execution of the update_registrar command on the ' \
+                              '"public" RPC nodes is inactive. Use the manual method or contact the program author ' \
+                              'for details.'
+                    raise Exception(msg)
+
+            except JSONRPCException as e:
+                public_proxy_node = False
+
+            if not public_proxy_node:
                 try:
                     # find an address to be used as the source of the transaction fees
                     min_fee = round(1024 * FEE_DUFF_PER_BYTE / 1e8, 8)
@@ -432,7 +443,6 @@ class UpdMnRegistrarDlg(QDialog, ui_upd_mn_registrar_dlg.Ui_UpdMnRegistrarDlg, W
                         raise Exception("No address can be found in the node's wallet with sufficient funds to "
                                         "cover the transaction fees.")
                     params[5] = bal_list[0]['address']
-                    self.dashd_intf.disable_conf_switching()
                 except JSONRPCException as e:
                     logging.warning("Couldn't list the node address balances. We assume you are using a "
                                     "public RPC node and the funding address for the transaction fee will "
@@ -440,8 +450,7 @@ class UpdMnRegistrarDlg(QDialog, ui_upd_mn_registrar_dlg.Ui_UpdMnRegistrarDlg, W
             else:
                 params.append(self.masternode.dmn_owner_private_key)
 
-            upd_tx_hash = self.dashd_intf.protx(*params)
-            logging.info('executed protx ' + str(params))
+            upd_tx_hash = self.dashd_intf.rpc_call(True, False, 'protx', *params)
 
             if upd_tx_hash:
                 logging.info('update_registrar successfully executed, tx hash: ' + upd_tx_hash)
@@ -476,6 +485,11 @@ class UpdMnRegistrarDlg(QDialog, ui_upd_mn_registrar_dlg.Ui_UpdMnRegistrarDlg, W
                 self.btnGenerateOperatorKey.setDisabled(True)
                 self.btnGenerateVotingKey.setDisabled(True)
                 self.btnClose.show()
+
+                url = self.app_config.get_block_explorer_tx()
+                if url:
+                    url = url.replace('%TXID%', upd_tx_hash)
+                    upd_tx_hash = f'<a href="{url}">{upd_tx_hash}</a>'
 
                 msg = 'The update_registrar transaction has been successfully sent. ' \
                      f'Tx hash: {upd_tx_hash}. <br><br>' \

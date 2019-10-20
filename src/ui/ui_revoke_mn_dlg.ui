@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>UpdMnRegistrarDlg</class>
- <widget class="QDialog" name="UpdMnRegistrarDlg">
+ <class>RevokeMnDlg</class>
+ <widget class="QDialog" name="RevokeMnDlg">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>671</width>
-    <height>348</height>
+    <width>619</width>
+    <height>265</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -17,7 +17,10 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Update masternode registrar</string>
+   <string>Revoke operator</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">a{text-decoration:none}</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -31,8 +34,17 @@
    </property>
    <item>
     <widget class="QLabel" name="lblDescription">
+     <property name="styleSheet">
+      <string notr="true"/>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Sunken</enum>
+     </property>
      <property name="text">
-      <string>The transaction type associated with this action (ProUpRegTx) is used to update information relating to the owner (&lt;a href=&quot;https://docs.dash.org/en/stable/masternodes/maintenance.html#proupregtx&quot;&gt;details&lt;/a&gt;).</string>
+      <string>The transaction type associated with this action (ProUpRevTx) is used by the operator to terminate service or signal the owner that a new BLS key is required (&lt;a href=&quot;https://docs.dash.org/en/stable/masternodes/maintenance.html#prouprevtx&quot;&gt;details&lt;/a&gt;).</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
@@ -43,7 +55,7 @@
     </widget>
    </item>
    <item>
-    <widget class="Line" name="line_2">
+    <widget class="Line" name="line">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -62,12 +74,12 @@
      </property>
      <widget class="QWidget" name="page0">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+       <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
-      <layout class="QGridLayout" name="gridLayout" rowstretch="0,0,0,0,0">
+      <layout class="QGridLayout" name="gridLayout" rowstretch="0,0">
        <property name="sizeConstraint">
         <enum>QLayout::SetMinimumSize</enum>
        </property>
@@ -86,69 +98,58 @@
        <property name="verticalSpacing">
         <number>8</number>
        </property>
-       <item row="2" column="1">
-        <layout class="QHBoxLayout" name="layOperatorKey">
-         <property name="spacing">
-          <number>8</number>
-         </property>
-         <item>
-          <widget class="QLineEdit" name="edtOperatorKey">
-           <property name="placeholderText">
-            <string>&lt;unchanged&gt;</string>
-           </property>
-           <property name="clearButtonEnabled">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QToolButton" name="btnGenerateOperatorKey">
-           <property name="text">
-            <string>Generate new</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="lblVotingKey">
-         <property name="text">
-          <string>&lt;b&gt;Voting private key&lt;/b&gt;</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="1">
-        <layout class="QHBoxLayout" name="layPayoutAddress">
+        <layout class="QHBoxLayout" name="layReason">
          <property name="spacing">
           <number>8</number>
          </property>
          <item>
-          <widget class="QLineEdit" name="edtPayoutAddress">
-           <property name="placeholderText">
-            <string>&lt;unchanged&gt;</string>
+          <widget class="QComboBox" name="cboReason">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
            </property>
-           <property name="clearButtonEnabled">
-            <bool>true</bool>
-           </property>
+           <item>
+            <property name="text">
+             <string>0: Not Specified</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>1: Termination of Service</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>2: Compromised Keys</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>3: Change of Keys (Not compromised)</string>
+            </property>
+           </item>
           </widget>
          </item>
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
         </layout>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="lblOperatorKey">
-         <property name="text">
-          <string>&lt;b&gt;Operator private key&lt;/b&gt; </string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
        </item>
        <item row="1" column="0">
-        <widget class="QLabel" name="lblPayoutAddress">
+        <widget class="QLabel" name="lblIP">
          <property name="font">
           <font>
            <weight>75</weight>
@@ -156,43 +157,19 @@
           </font>
          </property>
          <property name="text">
-          <string>Payout address</string>
+          <string>Revocation reason</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
-        <layout class="QHBoxLayout" name="layVotingKey">
-         <property name="spacing">
-          <number>8</number>
-         </property>
-         <item>
-          <widget class="QLineEdit" name="edtVotingKey">
-           <property name="placeholderText">
-            <string>&lt;unchanged&gt;</string>
-           </property>
-           <property name="clearButtonEnabled">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QToolButton" name="btnGenerateVotingKey">
-           <property name="text">
-            <string>Generate new</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
       </layout>
      </widget>
     </widget>
    </item>
    <item>
-    <widget class="Line" name="line">
+    <widget class="Line" name="line_2">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -200,6 +177,9 @@
    </item>
    <item>
     <widget class="QLabel" name="lblManualCommands">
+     <property name="styleSheet">
+      <string notr="true"/>
+     </property>
      <property name="text">
       <string/>
      </property>
@@ -211,19 +191,6 @@
       <bool>true</bool>
      </property>
      <property name="openLinks">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QLabel" name="lblMessage">
-     <property name="text">
-      <string/>
-     </property>
-     <property name="wordWrap">
-      <bool>true</bool>
-     </property>
-     <property name="openExternalLinks">
       <bool>true</bool>
      </property>
     </widget>
@@ -283,9 +250,9 @@
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="btnSendUpdateTx">
+       <widget class="QPushButton" name="btnSendRevokeTx">
         <property name="text">
-         <string>Send Update Transaction</string>
+         <string>Send Revoke Transaction</string>
         </property>
         <property name="autoDefault">
          <bool>false</bool>
@@ -305,12 +272,9 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>edtPayoutAddress</tabstop>
-  <tabstop>edtOperatorKey</tabstop>
-  <tabstop>btnGenerateOperatorKey</tabstop>
-  <tabstop>edtVotingKey</tabstop>
-  <tabstop>btnGenerateVotingKey</tabstop>
-  <tabstop>btnSendUpdateTx</tabstop>
+  <tabstop>edtManualCommands</tabstop>
+  <tabstop>btnSendRevokeTx</tabstop>
+  <tabstop>btnClose</tabstop>
   <tabstop>btnCancel</tabstop>
  </tabstops>
  <resources/>

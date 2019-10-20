@@ -9,9 +9,11 @@ import datetime
 import glob
 import json
 import os
+import pickle
 import re
 import copy
 import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -24,11 +26,16 @@ import logging
 from typing import Optional, Callable, Dict, Tuple, List
 import bitcoin
 from logging.handlers import RotatingFileHandler
+import hashlib
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import QLocale, QObject
 from PyQt5.QtWidgets import QMessageBox
 from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import (padding, rsa, utils)
+from cryptography.hazmat.primitives import serialization
 
 import app_defs
 import base58
@@ -136,6 +143,8 @@ class AppConfig(QObject):
         self._dash_blockchain_info = {}
         self.feature_register_dmn_automatic = AppFeatueStatus(True, 0, '')
         self.feature_update_registrar_automatic = AppFeatueStatus(True, 0, '')
+        self.feature_update_service_automatic = AppFeatueStatus(True, 0, '')
+        self.feature_revoke_operator_automatic = AppFeatueStatus(True, 0, '')
 
         self.hw_type = None  # TREZOR, KEEPKEY, LEDGERNANOS
         self.hw_keepkey_psw_encoding = 'NFC'  # Keepkey passphrase UTF8 chars encoding:
@@ -164,6 +173,8 @@ class AppConfig(QObject):
         self.dont_use_file_dialogs = False
         self.confirm_when_voting = True
         self.add_random_offset_to_vote_time = True  # To avoid identifying one user's masternodes by vote time
+        self.sig_time_offset_min = -1800
+        self.sig_time_offset_max = 1800
         self.csv_delimiter = ';'
         self.masternodes = []
         self.last_bip32_base_path = ''
@@ -189,6 +200,18 @@ class AppConfig(QObject):
         self.fernet = None
         self.log_handler = None
 
+        # options for trezor:
+        self.trezor_webusb = True
+        self.trezor_bridge = True
+        self.trezor_udp = True
+        self.trezor_hid = True
+
+        try:
+            self.default_rpc_connections = self.decode_connections(default_config.dashd_default_connections)
+        except Exception:
+            self.default_rpc_connections = []
+            logging.exception('Exception while parsing default RPC connections.')
+
     def init(self, app_dir):
         """ Initialize configuration after openning the application. """
         self.app_dir = app_dir
@@ -206,7 +229,38 @@ class AppConfig(QObject):
         parser.add_argument('--config', help="Path to a configuration file", dest='config')
         parser.add_argument('--data-dir', help="Root directory for configuration file, cache and log subdirs",
                             dest='data_dir')
+        parser.add_argument('--scan-for-ssh-agent-vars', type=app_utils.str2bool,
+                            help="If 0, skip scanning shell profile files for the SSH_AUTH_SOCK env variable "
+                                 "(Mac only)", dest='scan_for_ssh_agent_vars', default=True)
+        parser.add_argument('--trezor-webusb', type=app_utils.str2bool, help="Disable WebUsbTransport for Trezor",
+                            dest='trezor_webusb', default=True)
+        parser.add_argument('--trezor-bridge', type=app_utils.str2bool, help="Disable BridgeTransport for Trezor",
+                            dest='trezor_bridge', default=True)
+        parser.add_argument('--trezor-udp', type=app_utils.str2bool, help="Disable UdpTransport for Trezor",
+                            dest='trezor_udp', default=True)
+        parser.add_argument('--trezor-hid', type=app_utils.str2bool, help="Disable HidTransport for Trezor",
+                            dest='trezor_hid', default=True)
+        parser.add_argument('--sig-time-offset-min', type=int,
+                            help="Number of seconds relative to the current time being the lower bound of the "
+                                 "time range from which a random sig_time offset is drawn (default -1800)",
+                            dest='sig_time_offset_min', default=-1800)
+        parser.add_argument('--sig-time-offset-max', type=int,
+                            help="Number of seconds relative to the current time being the upper bound of the "
+                                 "time range from which a random sig_time offset is drawn (default 1800)",
+                            dest='sig_time_offset_max', default=1800)
+
         args = parser.parse_args()
+        self.trezor_webusb = args.trezor_webusb
+        self.trezor_bridge = args.trezor_bridge
+        self.trezor_udp = args.trezor_udp
+        self.trezor_hid = args.trezor_hid
+        self.sig_time_offset_min = args.sig_time_offset_min
+        self.sig_time_offset_max = args.sig_time_offset_max
+        if not self.sig_time_offset_min < self.sig_time_offset_max:
+            WndUtils.errorMsg('--sig-time-offset-min must be less than --sig-time-offset-max. Using the default '
+                              'values (-1800/1800).')
+            self.sig_time_offset_min = -1800
+            self.sig_time_offset_max = 1800
 
         app_user_dir = ''
         if args.data_dir:
@@ -224,14 +278,14 @@ class AppConfig(QObject):
 
         migrate_config = False
         old_user_data_dir = ''
+        user_home_dir = os.path.expanduser('~')
         if not app_user_dir:
-            home_dir = os.path.expanduser('~')
-            app_user_dir = os.path.join(home_dir, APP_DATA_DIR_NAME + '-v' + str(CURRENT_CFG_FILE_VERSION))
+            app_user_dir = os.path.join(user_home_dir, APP_DATA_DIR_NAME + '-v' + str(CURRENT_CFG_FILE_VERSION))
             if not os.path.exists(app_user_dir):
                 prior_version_dirs = ['.dmt']
                 # look for the data dir of the previous version
                 for d in prior_version_dirs:
-                    old_user_data_dir = os.path.join(home_dir, d)
+                    old_user_data_dir = os.path.join(user_home_dir, d)
                     if os.path.exists(old_user_data_dir):
                         migrate_config = True
                         break
@@ -336,6 +390,20 @@ class AppConfig(QObject):
             self.app_config_file_name = app_cache.get_value(
                 'AppConfig_ConfigFileName', default_value=os.path.join(self.data_dir, 'config.ini'), type=str)
 
+        if sys.platform == 'darwin' and args.scan_for_ssh_agent_vars:
+            # on Mac try to read the SSH_AUTH_SOCK variable from shell profile files - on mac, shell profile files
+            # aren't used in GUI apps, so setting SSH_AUTH_SOCK there has no effect in this case
+            try:
+                for fname in ('.bash_profile', '.zshrc', '.bashrc'):
+                    cmd = f'echo $(source {os.path.join(user_home_dir, fname)}; echo $SSH_AUTH_SOCK)'
+                    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                    ssh_auth_sock = p.stdout.readlines()[0].strip().decode('ASCII')
+                    if ssh_auth_sock:
+                        os.environ['SSH_AUTH_SOCK'] = ssh_auth_sock
+                        break
+            except Exception:
+                pass
+
         # setup logging
         self.log_dir = os.path.join(self.data_dir, 'logs')
         self.log_file = os.path.join(self.log_dir, 'dmt.log')
@@ -350,6 +418,9 @@ class AppConfig(QObject):
         self.set_log_level('INFO')
         logging.info(f'===========================================================================')
         logging.info(f'Application started (v {self.app_version})')
+        logging.info('Environmnent:')
+        logging.info(str(os.environ))
+
         self.restore_loggers_config()
 
         # directory for configuration backups:
@@ -370,15 +441,27 @@ class AppConfig(QObject):
 
     def save_cache_settings(self):
         if self.feature_register_dmn_automatic.get_value() is not None:
-            app_cache.set_value('FEATURE_REGISTER_DMN_AUTOMATIC_' + self.dash_network, self.feature_register_dmn_automatic.get_value())
+            app_cache.set_value('FEATURE_REGISTER_DMN_AUTOMATIC_' + self.dash_network,
+                                self.feature_register_dmn_automatic.get_value())
         if self.feature_update_registrar_automatic.get_value() is not None:
-            app_cache.set_value('FEATURE_UPDATE_AUTOMATIC_REGISTRAR_' + self.dash_network, self.feature_update_registrar_automatic.get_value())
+            app_cache.set_value('FEATURE_UPDATE_REGISTRAR_AUTOMATIC_' + self.dash_network,
+                                self.feature_update_registrar_automatic.get_value())
+        if self.feature_update_service_automatic.get_value() is not None:
+            app_cache.set_value('FEATURE_UPDATE_SERVICE_AUTOMATIC_' + self.dash_network,
+                                self.feature_update_service_automatic.get_value())
+        if self.feature_revoke_operator_automatic.get_value() is not None:
+            app_cache.set_value('FEATURE_REVOKE_OPERATOR_AUTOMATIC_' + self.dash_network,
+                                self.feature_revoke_operator_automatic.get_value())
 
     def restore_cache_settings(self):
         ena = app_cache.get_value('FEATURE_REGISTER_AUTOMATIC_DMN_' + self.dash_network, True, bool)
         self.feature_register_dmn_automatic.set_value(ena, AppFeatueStatus.PRIORITY_APP_CACHE)
-        ena = app_cache.get_value('FEATURE_UPDATE_AUTOMATIC_REGISTRAR_' + self.dash_network, True, bool)
+        ena = app_cache.get_value('FEATURE_UPDATE_REGISTRAR_AUTOMATIC_' + self.dash_network, True, bool)
         self.feature_update_registrar_automatic.set_value(ena, AppFeatueStatus.PRIORITY_APP_CACHE)
+        ena = app_cache.get_value('FEATURE_UPDATE_SERVICE_AUTOMATIC_' + self.dash_network, True, bool)
+        self.feature_update_service_automatic.set_value(ena, AppFeatueStatus.PRIORITY_APP_CACHE)
+        ena = app_cache.get_value('FEATURE_REVOKE_OPERATOR_AUTOMATIC_' + self.dash_network, True, bool)
+        self.feature_revoke_operator_automatic.set_value(ena, AppFeatueStatus.PRIORITY_APP_CACHE)
 
     def copy_from(self, src_config):
         self.dash_network = src_config.dash_network
@@ -443,7 +526,6 @@ class AppConfig(QObject):
             cur.execute('select voting_time from VOTING_RESULTS where id=(select min(id) from VOTING_RESULTS)')
             row = cur.fetchone()
             if row and row[0]:
-                print('row: ' + str(row[0]))
                 d = datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S')
                 vts = d.timestamp()
                 if vts < 1554246129:  # timestamp of the block (1047200) that activated spork 15
@@ -521,12 +603,6 @@ class AppConfig(QObject):
         if not file_name:
             file_name = self.app_config_file_name
 
-        # from v0.9.15 some public nodes changed its names and port numbers to the official HTTPS port number: 443
-        # correct the configuration
-        if not self.app_last_version or app_utils.is_version_bigger('0.9.22-hotfix4', self.app_last_version):
-            correct_public_nodes = True
-        else:
-            correct_public_nodes = False
         configuration_corrected = False
         errors_while_reading = False
         hw_type_sav = self.hw_type
@@ -647,9 +723,6 @@ class AppConfig(QObject):
                                 mn.name = config.get(section, 'name', fallback='')
                                 mn.ip = config.get(section, 'ip', fallback='')
                                 mn.port = config.get(section, 'port', fallback='')
-                                mn.privateKey = self.simple_decrypt(
-                                    config.get(section, 'private_key', fallback='').strip(), ini_version < 4,
-                                    lambda x: dash_utils.validate_wif_privkey(x, self.dash_network) )
                                 mn.collateralBip32Path = config.get(section, 'collateral_bip32_path', fallback='').strip()
                                 mn.collateralAddress = config.get(section, 'collateral_address', fallback='').strip()
                                 mn.collateralTx = config.get(section, 'collateral_tx', fallback='').strip()
@@ -720,20 +793,49 @@ class AppConfig(QObject):
                             cfg.ssh_conn_cfg.host = config.get(section, 'ssh_host', fallback='').strip()
                             cfg.ssh_conn_cfg.port = config.get(section, 'ssh_port', fallback='').strip()
                             cfg.ssh_conn_cfg.username = config.get(section, 'ssh_username', fallback='').strip()
+                            auth_method = config.get(section, 'ssh_auth_method', fallback='any').strip()
+                            if auth_method and auth_method not in ('any', 'password', 'key_pair', 'ssh_agent'):
+                                auth_method = 'password'
+                            cfg.ssh_conn_cfg.auth_method = auth_method
+                            cfg.ssh_conn_cfg.private_key_path = config.get(section, 'ssh_private_key_path',
+                                                                           fallback='').strip()
+
                             cfg.testnet = self.value_to_bool(config.get(section, 'testnet', fallback='0'))
                             skip_adding = False
-                            if correct_public_nodes:
-                                if cfg.host.lower() == 'alice.dash-dmt.eu':
-                                    cfg.host = 'alice.dash-masternode-tool.org'
-                                    cfg.port = '443'
-                                    configuration_corrected = True
-                                elif cfg.host.lower() == 'luna.dash-dmt.eu':
-                                    cfg.host = 'luna.dash-masternode-tool.org'
-                                    cfg.port = '443'
-                                    configuration_corrected = True
-                                elif cfg.host.lower() == 'test.stats.dash.org':
-                                    skip_adding = True
-                                    configuration_corrected = True
+
+                            if cfg.host.lower() == 'test.stats.dash.org':
+                                skip_adding = True
+                                configuration_corrected = True
+                            elif cfg.get_conn_id() == '9b73e3fad66e8d07597c3afcf14f8f3513ed63dfc903b5d6e02c46f59c2ffadc':
+                                # delete obsolete "public" connection to luna.dash-masternode-tool.org
+                                skip_adding = True
+                                configuration_corrected = True
+
+                            if config.has_option(section, 'rpc_encryption_pubkey'):
+                                pubkey = config.get(section, 'rpc_encryption_pubkey', fallback='')
+                                if pubkey:
+                                    try:
+                                        cfg.set_rpc_encryption_pubkey(pubkey)
+                                    except Exception as e:
+                                        logging.warning('Error while setting RPC encryption key: ' + str(e))
+                            else:
+                                # not existent rpc_encryption_pubkey parameter in the configuration file could mean
+                                # we are opwnninf the old configuration file or the parameter was deleted by the old
+                                # dmt version; if the connection belongs to the default connections, restore
+                                # the RPC encryption key
+                                for c in self.default_rpc_connections:
+                                    if c.get_conn_id() == cfg.get_conn_id():
+                                        matching_default_conn = c
+                                        break
+                                else:
+                                    matching_default_conn = None
+
+                                if matching_default_conn:
+                                    cfg.set_rpc_encryption_pubkey(
+                                        matching_default_conn.get_rpc_encryption_pubkey_str('DER'))
+                                    if cfg.is_rpc_encryption_configured():
+                                        configuration_corrected = True
+
                             if not skip_adding:
                                 self.dash_net_configs.append(cfg)
 
@@ -788,16 +890,16 @@ class AppConfig(QObject):
             # else: file will be created while saving
 
         try:
-            cfgs = self.decode_connections(default_config.dashd_default_connections)
-            if cfgs:
+            if self.default_rpc_connections:
                 # force import default connecticons if there is no any in the configuration
                 force_import = (self.app_last_version == '0.9.15')
 
-                added, updated = self.import_connections(cfgs, force_import=force_import, limit_to_network=None)
+                added, updated = self.import_connections(self.default_rpc_connections, force_import=force_import,
+                                                         limit_to_network=None)
                 if added or updated:
                     configuration_corrected = True
 
-                for c in cfgs:
+                for c in self.default_rpc_connections:
                     if c.mainnet:
                         self.public_conns_mainnet[c.get_conn_id()] = c
                     else:
@@ -818,11 +920,11 @@ class AppConfig(QObject):
 
         self.configure_cache()
 
-    def save_to_file(self, hw_session: HwSessionInfo, file_name: Optional[str] = None):
+    def save_to_file(self, hw_session: HwSessionInfo, file_name: Optional[str] = None,
+                     update_current_file_name = True):
         """
         Saves current configuration to a file with the name 'file_name'. If the 'file_name' argument is empty
         configuration is saved under the current configuration file name (self.app_config_file_name).
-        :param file_name:
         :return:
         """
 
@@ -840,7 +942,7 @@ class AppConfig(QObject):
                 return
 
         # backup old ini file
-        if self.backup_config_file:
+        if self.backup_config_file and update_current_file_name:
             if os.path.exists(file_name):
                 tm_str = datetime.datetime.now().strftime('%Y-%m-%d %H_%M')
                 back_file_name = os.path.join(self.cfg_backup_dir, 'config_' + tm_str + '.ini')
@@ -879,7 +981,6 @@ class AppConfig(QObject):
             config.set(section, 'port', str(mn.port))
             # the private key encryption method used below is a very basic one, just to not have them stored
             # in plain text; more serious encryption is used when enabling the 'Encrypt config file' option
-            config.set(section, 'private_key', self.simple_encrypt(mn.privateKey))
             config.set(section, 'collateral_bip32_path', mn.collateralBip32Path)
             config.set(section, 'collateral_address', mn.collateralAddress)
             config.set(section, 'collateral_tx', mn.collateralTx)
@@ -915,8 +1016,11 @@ class AppConfig(QObject):
                 config.set(section, 'ssh_host', cfg.ssh_conn_cfg.host)
                 config.set(section, 'ssh_port', cfg.ssh_conn_cfg.port)
                 config.set(section, 'ssh_username', cfg.ssh_conn_cfg.username)
+                config.set(section, 'ssh_auth_method', cfg.ssh_conn_cfg.auth_method)
+                config.set(section, 'ssh_private_key_path', cfg.ssh_conn_cfg.private_key_path)
                 # SSH password is not saved until HW encrypting feature will be finished
             config.set(section, 'testnet', '1' if cfg.testnet else '0')
+            config.set(section, 'rpc_encryption_pubkey', cfg.get_rpc_encryption_pubkey_str('DER'))
 
         # ret_info = {}
         # read_file_encrypted(file_name, ret_info, hw_session)
@@ -935,14 +1039,16 @@ class AppConfig(QObject):
                     mem_data += data_chunk
 
             write_file_encrypted(file_name, hw_session, mem_data)
-            self.config_file_encrypted = True
+            encrypted = True
         else:
             config.write(codecs.open(file_name, 'w', 'utf-8'))
-            self.config_file_encrypted = False
+            encrypted = False
 
-        self.modified = False
-        self.app_config_file_name = file_name
-        app_cache.set_value('AppConfig_ConfigFileName', self.app_config_file_name)
+        if update_current_file_name:
+            self.config_file_encrypted = encrypted
+            self.modified = False
+            self.app_config_file_name = file_name
+            app_cache.set_value('AppConfig_ConfigFileName', self.app_config_file_name)
 
     def reset_network_dependent_dyn_params(self):
         self.apply_remote_app_params()
@@ -972,6 +1078,8 @@ class AppConfig(QObject):
         if self._remote_app_params:
             self.feature_register_dmn_automatic.set_value(*get_feature_config_remote('REGISTER_DMN_AUTOMATIC'))
             self.feature_update_registrar_automatic.set_value(*get_feature_config_remote('UPDATE_REGISTRAR_AUTOMATIC'))
+            self.feature_update_service_automatic.set_value(*get_feature_config_remote('UPDATE_SERVICE_AUTOMATIC'))
+            self.feature_revoke_operator_automatic.set_value(*get_feature_config_remote('REVOKE_OPERATOR_AUTOMATIC'))
 
     def read_dash_network_app_params(self, dashd_intf):
         """ Read parameters having impact on the app's behavior (sporks/dips) from the Dash network. Called
@@ -1113,7 +1221,7 @@ class AppConfig(QObject):
         """
         self.defective_net_configs.append(cfg)
 
-    def decode_connections(self, raw_conn_list):
+    def decode_connections(self, raw_conn_list) -> List['DashNetworkConnectionCfg']:
         """
         Decodes list of dicts describing connection to a list of DashNetworkConnectionCfg objects.
         :param raw_conn_list: 
@@ -1131,6 +1239,7 @@ class AppConfig(QObject):
                     cfg.username = conn_raw['username']
                     cfg.set_encrypted_password(conn_raw['password'], config_version=CURRENT_CFG_FILE_VERSION)
                     cfg.use_ssl = conn_raw['use_ssl']
+                    cfg.set_rpc_encryption_pubkey(conn_raw.get('rpc_encryption_pubkey'))
                     if cfg.use_ssh_tunnel:
                         if 'ssh_host' in conn_raw:
                             cfg.ssh_conn_cfg.host = conn_raw['ssh_host']
@@ -1139,6 +1248,7 @@ class AppConfig(QObject):
                         if 'ssh_user' in conn_raw:
                             cfg.ssh_conn_cfg.port = conn_raw['ssh_user']
                     cfg.testnet = conn_raw.get('testnet', False)
+                    cfg.set_rpc_encryption_pubkey(conn_raw.get('rpc_encryption_pubkey'))
                     connn_list.append(cfg)
             except Exception as e:
                 logging.exception('Exception while decoding connections.')
@@ -1156,9 +1266,10 @@ class AppConfig(QObject):
                 'username': str,
                 'password': str,
                 'use_ssl': bool,
+                'rpc_encryption_pubkey': str,
                 'ssh_host': str, non-mandatory
                 'ssh_port': str, non-mandatory
-                'ssh_user': str non-mandatory
+                'ssh_user': str, non-mandatory
             },
         ]
         :return: list of DashNetworkConnectionCfg objects or None if there was an error while importing
@@ -1185,7 +1296,8 @@ class AppConfig(QObject):
                 'port': conn.port,
                 'username': conn.username,
                 'password': conn.get_password_encrypted(),
-                'use_ssl': conn.use_ssl
+                'use_ssl': conn.use_ssl,
+                'rpc_encryption_pubkey': conn.get_rpc_encryption_pubkey_str('DER')
             }
             if conn.use_ssh_tunnel:
                 ec['ssh_host'] = conn.ssh_conn_cfg.host
@@ -1358,19 +1470,12 @@ class AppConfig(QObject):
     def get_app_img_dir(self):
         return os.path.join(self.app_dir, '', 'img')
 
-    def is_connection_public(self, conn: 'DashNetworkConnectionCfg'):
-        conns = self.public_conns_mainnet if self.is_mainnet() else self.public_conns_testnet
-        if conn.get_conn_id() in conns:
-            return True
-        return False
-
 
 class MasternodeConfig:
     def __init__(self):
         self.name = ''
         self.__ip = ''
         self.__port = '9999'
-        self.__privateKey = ''
         self.__collateralBip32Path = ''
         self.__collateralAddress = ''
         self.__collateralTx = ''
@@ -1399,7 +1504,6 @@ class MasternodeConfig:
     def copy_from(self, src_mn: 'MasternodeConfig'):
         self.ip = src_mn.ip
         self.port = src_mn.port
-        self.privateKey = src_mn.privateKey
         self.collateralBip32Path = src_mn.collateralBip32Path
         self.collateralAddress = src_mn.collateralAddress
         self.collateralTx = src_mn.collateralTx
@@ -1448,20 +1552,6 @@ class MasternodeConfig:
             self.__port = new_port.strip()
         else:
             self.__port = new_port
-
-    @property
-    def privateKey(self):
-        if self.__privateKey:
-            return self.__privateKey.strip()
-        else:
-            return self.__privateKey
-
-    @privateKey.setter
-    def privateKey(self, new_private_key):
-        if new_private_key:
-            self.__privateKey = new_private_key.strip()
-        else:
-            self.__privateKey = new_private_key
 
     @property
     def collateralBip32Path(self):
@@ -1702,6 +1792,8 @@ class SSHConnectionCfg(object):
         self.__port = ''
         self.__username = ''
         self.__password = ''
+        self.__auth_method = 'any'  # 'any', 'password', 'key_pair', 'ssh_agent'
+        self.private_key_path = ''
 
     @property
     def host(self):
@@ -1713,7 +1805,10 @@ class SSHConnectionCfg(object):
 
     @property
     def port(self):
-        return self.__port
+        if self.__port:
+            return self.__port
+        else:
+            return '22'
 
     @port.setter
     def port(self, port):
@@ -1735,6 +1830,16 @@ class SSHConnectionCfg(object):
     def password(self, password):
         self.__password = password
 
+    @property
+    def auth_method(self):
+        return self.__auth_method
+
+    @auth_method.setter
+    def auth_method(self, method):
+        if method not in ('any', 'password', 'key_pair', 'ssh_agent'):
+            raise Exception('Invalid authentication method')
+        self.__auth_method = method
+
 
 class DashNetworkConnectionCfg(object):
     def __init__(self, method):
@@ -1748,6 +1853,8 @@ class DashNetworkConnectionCfg(object):
         self.__use_ssh_tunnel = False
         self.__ssh_conn_cfg = SSHConnectionCfg()
         self.__testnet = False
+        self.__rpc_encryption_pubkey_der = ''
+        self.__rpc_encryption_pubkey_object = None
 
     def get_description(self):
         if self.__use_ssh_tunnel:
@@ -1779,12 +1886,20 @@ class DashNetworkConnectionCfg(object):
         :return: True, if objects have identical attributes.
         """
         return self.host == cfg2.host and self.port == cfg2.port and self.username == cfg2.username and \
-               self.password == cfg2.password and self.use_ssl == cfg2.use_ssl and \
-               self.use_ssh_tunnel == cfg2.use_ssh_tunnel and \
-               (not self.use_ssh_tunnel or (self.ssh_conn_cfg.host == cfg2.ssh_conn_cfg.host and
-                                            self.ssh_conn_cfg.port == cfg2.ssh_conn_cfg.port and
-                                            self.ssh_conn_cfg.username == cfg2.ssh_conn_cfg.username)) and \
-               self.testnet == cfg2.testnet
+            self.password == cfg2.password and self.use_ssl == cfg2.use_ssl and \
+            self.use_ssh_tunnel == cfg2.use_ssh_tunnel and \
+            (not self.use_ssh_tunnel or (self.ssh_conn_cfg.host == cfg2.ssh_conn_cfg.host and
+                                         self.ssh_conn_cfg.port == cfg2.ssh_conn_cfg.port and
+                                         self.ssh_conn_cfg.username == cfg2.ssh_conn_cfg.username and
+                                         self.ssh_conn_cfg.auth_method == cfg2.ssh_conn_cfg.auth_method and
+                                         self.ssh_conn_cfg.private_key_path == cfg2.ssh_conn_cfg.private_key_path)) \
+               and self.testnet == cfg2.testnet and \
+            self.__rpc_encryption_pubkey_der == cfg2.__rpc_encryption_pubkey_der
+
+    def __deepcopy__(self, memodict):
+        newself = DashNetworkConnectionCfg(self.method)
+        newself.copy_from(self)
+        return newself
 
     def copy_from(self, cfg2):
         """
@@ -1797,11 +1912,17 @@ class DashNetworkConnectionCfg(object):
         self.password = cfg2.password
         self.use_ssh_tunnel = cfg2.use_ssh_tunnel
         self.use_ssl = cfg2.use_ssl
-        self.testnet = self.testnet
+        self.testnet = cfg2.testnet
+        self.enabled = cfg2.enabled
         if self.use_ssh_tunnel:
             self.ssh_conn_cfg.host = cfg2.ssh_conn_cfg.host
             self.ssh_conn_cfg.port = cfg2.ssh_conn_cfg.port
             self.ssh_conn_cfg.username = cfg2.ssh_conn_cfg.username
+            self.ssh_conn_cfg.auth_method = cfg2.ssh_conn_cfg.auth_method
+            self.ssh_conn_cfg.private_key_path = cfg2.ssh_conn_cfg.private_key_path
+        if self.__rpc_encryption_pubkey_object and self.__rpc_encryption_pubkey_der != cfg2.__rpc_encryption_pubkey_der:
+            self.__rpc_encryption_pubkey_object = None
+        self.__rpc_encryption_pubkey_der = cfg2.__rpc_encryption_pubkey_der
 
     def is_http_proxy(self):
         """
@@ -1932,3 +2053,59 @@ class DashNetworkConnectionCfg(object):
         if not isinstance(testnet, bool):
             raise Exception('Ivalid type of "testnet" argument')
         self.__testnet = testnet
+
+    def set_rpc_encryption_pubkey(self, key: str):
+        """
+        AES public key for additional RPC encryption, dedicated for calls transmitting sensitive information
+        like protx. Accepted formats: PEM, DER.
+        """
+        try:
+            if key:
+                # validate public key by deserializing it
+                if re.fullmatch(r'^([0-9a-fA-F]{2})+$', key):
+                    serialization.load_der_public_key(bytes.fromhex(key), backend=default_backend())
+                else:
+                    pubkey = serialization.load_pem_public_key(key.encode('ascii'), backend=default_backend())
+                    raw = pubkey.public_bytes(serialization.Encoding.DER,
+                                              format=serialization.PublicFormat.SubjectPublicKeyInfo)
+                    key = raw.hex()
+
+            if self.__rpc_encryption_pubkey_object and (self.__rpc_encryption_pubkey_der != key or not key):
+                self.__rpc_encryption_pubkey_der = None
+
+            self.__rpc_encryption_pubkey_der = key
+        except Exception as e:
+            logging.exception('Exception occurred')
+            raise
+
+    def get_rpc_encryption_pubkey_str(self, format: str):
+        """
+        :param format: PEM | DER
+        """
+        if self.__rpc_encryption_pubkey_der:
+            if format == 'DER':
+                return self.__rpc_encryption_pubkey_der
+            elif format == 'PEM':
+                pubkey = self.get_rpc_encryption_pubkey_object()
+                pem = pubkey.public_bytes(encoding=serialization.Encoding.PEM,
+                                          format=serialization.PublicFormat.SubjectPublicKeyInfo)
+                return pem.decode('ascii')
+            else:
+                raise Exception('Invalid key format')
+        else:
+            return ''
+
+    def get_rpc_encryption_pubkey_object(self):
+        if self.__rpc_encryption_pubkey_der:
+            if not self.__rpc_encryption_pubkey_object:
+                self.__rpc_encryption_pubkey_object = serialization.load_der_public_key(
+                    bytes.fromhex(self.__rpc_encryption_pubkey_der), backend=default_backend())
+            return self.__rpc_encryption_pubkey_object
+        else:
+            return None
+
+    def is_rpc_encryption_configured(self):
+        if self.__rpc_encryption_pubkey_der:
+            return True
+        else:
+            return False

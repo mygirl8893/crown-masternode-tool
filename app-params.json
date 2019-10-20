@@ -1,14 +1,15 @@
 {
-  "appCurrentVersion": "0.9.23",
+  "appCurrentVersion": "0.9.26-hotfix2",
   "exeDownloads": {
-    "mac": "https://github.com/walkjivefly/crown-masternode-tool/releases/download/v0.9.23/CrownMasternodeTool_0.9.23.mac.dmg",
-    "win64": "https://github.com/walkjivefly/crown-masternode-tool/releases/download/v0.9.23/CrownMasternodeTool_0.9.23.win64.zip",
-    "linux": "https://github.com/walkjivefly/crown-masternode-tool/releases/download/v0.9.23/CrownMasternodeTool_0.9.23.linux.tar.gz"
+    "mac": "https://github.com/walkjivefly/crown-masternode-tool/releases/download/v0.9.26/CrownMasternodeTool_0.9.26-hotfix2.mac.dmg",
+    "win64": "https://github.com/walkjivefly/crown-masternode-tool/releases/download/v0.9.26/CrownMasternodeTool_0.9.26-hotfix2.win64.zip",
+    "linux": "https://github.com/walkjivefly/crown-masternode-tool/releases/download/v0.9.26/CrownMasternodeTool_0.9.26-hotfix2.linux.tar.gz"
   },
   "defaultCrowndProtocol": {
     "mainnet": 70057,
     "testnet": 70057
   },
+//todo: check/change/create Crown specific matching sporks
   "sporks": [
     {
       "name": "SPORK_6_NEW_SIGS",
@@ -20,11 +21,12 @@
     {
       "name": "SPORK_15_DETERMINISTIC_MNS_ENABLED",
       "active": {
-        "mainnet": false,
+        "mainnet": true,
         "testnet": true
       }
     }
   ],
+//todo: investigate and adpat these features
   "features": {
     "NON_DETERMINISTIC_MNS": {
       "mainnet": {
@@ -59,6 +61,30 @@
       }
     },
     "UPDATE_REGISTRAR_AUTOMATIC": {
+      "mainnet": {
+        "status": "enabled",
+        "priority": 4,
+        "message": ""
+      },
+      "testnet": {
+        "status": "enabled",
+        "priority": 4,
+        "message": ""
+      }
+    },
+    "UPDATE_SERVICE_AUTOMATIC": {
+      "mainnet": {
+        "status": "enabled",
+        "priority": 4,
+        "message": ""
+      },
+      "testnet": {
+        "status": "enabled",
+        "priority": 4,
+        "message": ""
+      }
+    },
+    "REVOKE_OPERATOR_AUTOMATIC": {
       "mainnet": {
         "status": "enabled",
         "priority": 4,

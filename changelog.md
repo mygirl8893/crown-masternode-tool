@@ -1,3 +1,56 @@
+## [0.9.26-hotfix2] - 2019-09-09
+
+**Fixed**
+- Fixed an issue with saving the ssh authentication method.
+
+## [0.9.26-hotfix1] - 2019-08-20
+
+**Fixed**
+- Proposals: remove votes from the cache that no longer exist on the network.
+
+## [0.9.26] - 2019-08-19
+**Added**
+- Commandline parameters for changing the sig_time random offset range.
+- Ability to explicitly specify the authentication methods for an SSH tunnel from: username/password, RSA private key 
+pair and ssh agent.
+- Workaround for Trezor connection issues (LIBUSB) after Windows update #1903.
+- Showing a message if duplicate masternode information in the configuration may prevent voting. 
+
+**Fixed**
+- Issue "'WalletDlg' object has no attribute 'config'" when signing message from the wallet dialog.
+
+## [0.9.25-hotfix2] - 2019-07-15
+
+**Fixed**
+- Issue "'WalletDlg' object has no attribute 'config'" when signing message from the wallet dialog.
+
+## [0.9.25-hotfix1] - 2019-07-12
+
+**Fixed**
+- Issue with calculating the next payment block when a masternode received PoSeBan in the past and its PoSeRevivedBlock 
+is less than the last payment block.
+
+## [0.9.25] - 2019-07-01
+**Added**
+- Support for the KeepKey v6.x firmware.
+- Possibility to limit the Trezor transport methods using commandline parameters.
+- Signing messages with owner/voting key.
+- Export/import of the configuration.
+
+**Fixed**
+- A bug related to access to uninitialized variable.
+
+## [0.9.24] - 2019-05-24
+
+**Added**
+- Support for the "update service" feature (mn IP/port, operator payout address).
+- Support for the "revoke operator" feature.
+- Additional encryption (RSA) of data sent over the Internet for protx RPC calls.
+
+**Changed**
+- Additional information in the status area, mainly concerning diagnosis of problems with masternode.
+
+
 ## [0.9.23-hotfix3] - 2019-05-08
 
 **Fixed**
