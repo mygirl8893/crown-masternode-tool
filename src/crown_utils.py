@@ -90,7 +90,7 @@ def validate_bip32_path(path: str) -> bool:
 
 
 def pubkey_to_address(pub_key, dash_network: str):
-    """Convert public key to a Dash address."""
+    """Convert public key to a Crown address."""
     pubkey_bin = bytes.fromhex(pub_key)
     pub_hash = bitcoin.bin_hash160(pubkey_bin)
     data = bytes([get_chain_params(dash_network).PREFIX_PUBKEY_ADDRESS]) + pub_hash
@@ -117,7 +117,7 @@ def wif_privkey_to_address(privkey: str, dash_network: str):
 
 
 def validate_address(address: str, dash_network: typing.Optional[str]) -> bool:
-    """Validates if the 'address' is a valid Dash address.
+    """Validates if the 'address' is a valid Crown address.
     :address: address to be validated
     :dash_network: the dash network type against which the address will be validated; if the value is None, then
       the network type prefix validation will be skipped

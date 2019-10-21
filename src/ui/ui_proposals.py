@@ -281,7 +281,7 @@ class Ui_ProposalsDlg(object):
         self.btnVoteYesForAll.setToolTip(_translate("ProposalsDlg", "Vote Yes for all masternodes."))
         self.btnVoteYesForAll.setText(_translate("ProposalsDlg", "Yes For All"))
         self.tabsDetails.setTabText(self.tabsDetails.indexOf(self.tabVoting), _translate("ProposalsDlg", "Vote"))
-        self.btnVotesRefresh.setToolTip(_translate("ProposalsDlg", "Reads new votes from the Dash network"))
+        self.btnVotesRefresh.setToolTip(_translate("ProposalsDlg", "Reads new votes from the Crown network"))
         self.btnVotesRefresh.setText(_translate("ProposalsDlg", "Refresh"))
         self.btnVotesSaveToCSV.setText(_translate("ProposalsDlg", "Save to CSV..."))
         self.chbOnlyMyVotes.setText(_translate("ProposalsDlg", "Show my votes only"))

@@ -1,8 +1,27 @@
 ## WIP
-Please note that currently the documentation lags behind the development of the program, in particular in the area 
+Please note that currently the documentation is out of sync with the development of the program, in particular in the area 
 related to starting masternodes. It will be improved according to the resources available. 
 
-# Crown Masternode Tool (CMT)
+# Crown Masternode Tool (CMT) - Forked from https://github.com/Bertrand256/dash-masternode-tool
+
+The main purpose of this application is to give masternode operators (MNOs) the ability to send the `start masternode` command through an easy to use graphical user interface if the masternode collateral is controlled by a hardware wallet such as Trezor, KeepKey or Ledger.
+
+## Feature list
+
+* Sending the `start masternode` command if the collateral is controlled by a hardware wallet
+* Transferring masternode earnings safely, without touching the 10000 Crown funding transaction
+* Signing messages with a hardware wallet
+* Voting on proposals
+* Initialization/recovery of hardware wallets seeds
+* Updating of hardware wallets firmware (Trezor/KeepKey)
+* Support for Crown Testnet
+
+## Supported hardware wallets
+
+- [x] Trezor (model One and T)
+
+Most of the application features are accessible from the main program window:  
+![Main window](doc/img/dmt-main-window.png)
 
 ## Note
 
@@ -38,17 +57,17 @@ This README uses the term "masternode" to refer to both kinds of node and the Cr
    * [Hardware wallet initialization/recovery](doc/hw-initialization-recovery.md)
      * [Updating hardware wallet firmware](doc/hw-initr-update-firmware.md)
  * Building the CMT executables
-    * [macOS](doc/build-cmt-mac.md)
-    * [Windows](doc/build-cmt-windows.md)
+    * [macOS](doc/build-dmt-mac.md)
+    * [Windows](doc/build-dmt-windows.md)
     * Linux
-       * [Ubuntu](doc/build-cmt-linux-ubuntu.md)
-       * [Fedora](doc/build-cmt-linux-fedora.md)
+       * [Ubuntu](doc/build-dmt-linux-ubuntu.md)
+       * [Fedora](doc/build-dmt-linux-fedora.md)
  * [Downloads](https://github.com/Bertrand256/crown-masternode-tool/releases/latest)
  * [Changelog](changelog.md)
 
 ## Masternodes
 
-Crown masternodes are full nodes which are incentivized by receiving a share of the block reward as payment in return for the tasks they perform for the network, of which the most important include participation in *InstantSend* and *PrivateSend* transactions. In order to run a masternode, apart from setting up a server which runs the software, you must dedicate 10000 Crown as *collateral*, which is *"tied up"* in your node as long as you want it to be considered a masternode by the network. It is worth mentioning that the private key controlling the funds can (and for security reasons, should) be kept separately from the masternode server itself.
+Crown masternodes are full nodes which are incentivized by receiving a share of the block reward as payment in return for the tasks they perform for the network, of which the most important include participation in *InstantSend* transactions and *block generation* by the *MN-PoS* consensus mechanism. In order to run a masternode, apart from setting up a server which runs the software, you must dedicate 10000 Crown as *collateral*, which is *"tied up"* in your node as long as you want it to be considered a masternode by the network. It is worth mentioning that the private key controlling the funds can (and for security reasons, should) be kept separately from the masternode server itself.
 
 A server with the Crown daemon software installed will operate as a Crown full node, but before the rest of the network accepts it as a legitimate masternode, one more thing must happen: the person controlling the node must prove that they are also in control of the private key to the node's 10000 Crown *collateral*. This is achieved by sending a special message to the network (`start masternode` message), signed by this private key.
 
@@ -71,18 +90,13 @@ The main purpose of the application is to give masternode operators (MNOs) the a
 ## Supported hardware wallets
 
 - [x] Trezor (model One and T)
-- [x] KeepKey
-- [x] Ledger Nano S
-
-Most of the application features are accessible from the main program window:  
-![Main window](doc/img/dmt-main-window.png)
 
 # Configuration
 
 ## Setting up the hardware wallet type
- * Click the `Configure` button.
+ * Click the `Settings`/`Configure` button.
  * Select the `Miscellaneous` tab in the configuration dialog that appears.
- * Depending on the type of your hardware wallet, select the `Trezor`, `KeepKey` or `Ledger Nano S` option.  
+ * Make sure the `Trezor` option is selected.  
      ![Configuration window](doc/img/dmt-config-dlg-misc.png)
 
 ## Connection setup
@@ -97,6 +111,7 @@ Depending on your preferences (and skills) you can choose one of three possible 
 ## Masternode setup
 
 Here we make the following assumptions:
+
   * You already have a server running the Crown daemon software (*crownd*) that you want to use as a masternode. If you don't, you will need to install and configure one first by following the guide on the [Crown Forum](https://forum.crown.tech/index.php?topic=7706.0).
   * We occasionally refer to the *crownd* configuration file, so it is assumed that *crownd* is running under a Linux operating system (OS), which is the most popular and recommended OS for this purpose.
   * Your server has a public IP address that will be visible on the Internet.
@@ -154,6 +169,7 @@ The steps are as follows:
 7. Verification that the specified transaction ID exists, points to your collateral address, is unspent and is equal to exactly 10000 Crown. Messages in case of failure:  
   ![Could not find the specified transaction id](doc/img/startmn-tx-warning.png)  
   ![Collateral transaction output should equal 10000 Crown](doc/img/startmn-collateral-warning.png)  
+
   If you decide to continue anyway, you probably won't be able to successfully start your masternode.
 
 8. Verification at the Crown network level that the specified transaction ID is valid. Message in case of failure:  
