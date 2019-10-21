@@ -73,24 +73,6 @@ A server with the Crown daemon software installed will operate as a Crown full n
 
 This action can be carried out using the *Crown Core* reference software client. As can be expected, this requires sending 10000 Crown to an address controlled by the *Crown Core* wallet. In view of the amount of malware distributed over the Internet, you do not have to be paranoid to conclude that keeping large amounts of funds in a software wallet is not the most secure option. For these reasons, it is highly recommended to use a **hardware wallet** for this purpose.
 
-# Crown Masternode Tool
-
-The main purpose of the application is to give masternode operators (MNOs) the ability to send the `start masternode` command through an easy to use a graphical user interface if the masternode collateral is controlled by a hardware wallet such as Trezor, KeepKey or Ledger.
-
-## Feature list
-
-* Sending the `start masternode` command if the collateral is controlled by a hardware wallet
-* Transferring masternode earnings safely, without touching the 10000 Crown funding transaction
-* Signing messages with a hardware wallet
-* Voting on proposals
-* Initialization/recovery of hardware wallets seeds
-* Updating of hardware wallets firmware (Trezor/KeepKey)
-* Support for Crown Testnet
-
-## Supported hardware wallets
-
-- [x] Trezor (model One and T)
-
 # Configuration
 
 ## Setting up the hardware wallet type
