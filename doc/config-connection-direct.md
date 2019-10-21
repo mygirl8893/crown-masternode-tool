@@ -40,7 +40,7 @@ Setting parameters related to indexing and even restarting the application is no
  * Check the `Enabled` box.
  * Enter the following values:
    * `RPC host`: 127.0.0.1
-   * `port`: 9998
+   * `port`: 9341
    * `RPC username`: enter the value you specified for the `rpcuser` parameter in the `crown.conf` file.
    * `RPC password`: enter the value you specified for the `rpcpassword` parameter in the `crown.conf` file.
  * Make sure the `Use SSH tunnel` and `SSL` checkboxes remain unchecked. Also, if you decide to use only this connection, deactivate all other connections by unchecking the corresponding `Enabled` checkboxes.  

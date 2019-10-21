@@ -115,7 +115,7 @@ Here we make the following assumptions:
   * You already have a server running the Crown daemon software (*crownd*) that you want to use as a masternode. If you don't, you will need to install and configure one first by following the guide on the [Crown Forum](https://forum.crown.tech/index.php?topic=7706.0).
   * We occasionally refer to the *crownd* configuration file, so it is assumed that *crownd* is running under a Linux operating system (OS), which is the most popular and recommended OS for this purpose.
   * Your server has a public IP address that will be visible on the Internet.
-  * You have set up a TCP port on which your *crownd* listens for incoming connections (usually 9340).
+  * You have set up a TCP port on which your *crownd* listens for incoming connections (usually 9341).
 
 Further configuration steps depend on whether you already have a masternode controlled by *Crown Core* which you want to migrate to a hardware wallet managed by *CMT*, or if you are setting up a new masternode.
 

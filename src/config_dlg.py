@@ -808,7 +808,7 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
                             file = crownd_conf[2]
                             rpcuser = file.get('rpcuser', '')
                             rpcpassword = file.get('rpcpassword', '')
-                            rpcport = file.get('rpcport', '9998')
+                            rpcport = file.get('rpcport', '9341')
                             modified = False
                             if rpcuser:
                                 modified = modified or (self.current_network_cfg.username != rpcuser)

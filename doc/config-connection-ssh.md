@@ -4,17 +4,17 @@
 
 If you - like many masternode owners - have your masternode running on a VPS with access via SSH, then using it as a JSON-RPC gateway will probably be the best option for you.
 
-For security reasons, the TCP port used for JSON-RPC communication (`9998` by default) should be blocked by the firewall on Crown masternodes, and the Crown daemon itself will only accept connections from localhost. For this reason, you will not be able to connect to your Crown daemon and use the JSON-RPC service directly over the Internet. However, if you have SSH access to this server, you can create a secure tunnel that connects the local machine to the remote JSON-RPC service so that the CMT application sees the remote service as if it was working locally.
+For security reasons, the TCP port used for JSON-RPC communication (`9341` by default) should be blocked by the firewall on Crown masternodes, and the Crown daemon itself will only accept connections from localhost. For this reason, you will not be able to connect to your Crown daemon and use the JSON-RPC service directly over the Internet. However, if you have SSH access to this server, you can create a secure tunnel that connects the local machine to the remote JSON-RPC service so that the CMT application sees the remote service as if it was working locally.
 
 The communication is set up as follows:
  * an SSH session with the remote server is established over its public IP and SSH port
  * a random port is selected from the pool of unused ports on your computer to play the role of the local channel's endpoint
- * within the established SSH session, a secure channel is created that connects the local endpoint with the listening JSON-RPC service port on the remote server (`127.0.0.1:9998`)
+ * within the established SSH session, a secure channel is created that connects the local endpoint with the listening JSON-RPC service port on the remote server (`127.0.0.1:9341`)
  * CMT connects to the local endpoint and performs JSON-RPC requests as if the Crown daemon was working locally
 
 ```
  Local computer ━━━━━━━━━━━━━━━━> SSH session ━━━━━━━━━━━━━━━━> remote_server:22
-           ┃- connecting to 127.0.0.1:random local port           ┃ - listenning on 127.0.0.1:9998
+           ┃- connecting to 127.0.0.1:random local port           ┃ - listenning on 127.0.0.1:9341
  CMT app ━━┛                                                      ┗━━━ Crown daemon JSON-RPC
 ```
 
@@ -44,7 +44,7 @@ Keep in mind that the last step can take several hours to complete. If running o
    * `port`: SSH listening port number of the server (usually `22`)
    * `SSH username`: username you are using to establish a connection
    * `RPC host`: IP address of the network interface where *crownd* listens for JSON-RPC calls (`127.0.0.1` by default)
-   * `port`: TCP port number on which *crownd* listens for JSON-RPC calls (`9998` by default)
+   * `port`: TCP port number on which *crownd* listens for JSON-RPC calls (`9341` by default)
    * `RPC username`: enter the value you specified for the `rpcuser` parameter in the `crown.conf` file.
    * `RPC password`: enter the value you specified for the `rpcpassword` parameter in the `crown.conf` file
 
