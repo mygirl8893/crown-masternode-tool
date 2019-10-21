@@ -1,4 +1,4 @@
-## OUTDATED
+## WIP
 Please note that currently the documentation lags behind the development of the program, in particular in the area 
 related to starting masternodes. It will be improved according to the resources available. 
 
@@ -8,7 +8,7 @@ related to starting masternodes. It will be improved according to the resources 
 
 The Crown network supports 2 kinds of incentivised nodes: masternodes and systemnodes. At this time the only difference between them is the amount of collateral required:
  * 10000 for a Masternode
- *   500 fir a Systemnode
+ *   500 for a Systemnode
 
 This README uses the term "masternode" to refer to both kinds of node and the Crown Masternode Tool provides identical functionality for both kinds of node.
  
@@ -75,7 +75,7 @@ The main purpose of the application is to give masternode operators (MNOs) the a
 - [x] Ledger Nano S
 
 Most of the application features are accessible from the main program window:  
-![Main window](doc/img/cmt-main-window.png)
+![Main window](doc/img/dmt-main-window.png)
 
 # Configuration
 
@@ -83,7 +83,7 @@ Most of the application features are accessible from the main program window:
  * Click the `Configure` button.
  * Select the `Miscellaneous` tab in the configuration dialog that appears.
  * Depending on the type of your hardware wallet, select the `Trezor`, `KeepKey` or `Ledger Nano S` option.  
-     ![Configuration window](doc/img/cmt-config-dlg-misc.png)
+     ![Configuration window](doc/img/dmt-config-dlg-misc.png)
 
 ## Connection setup
 
@@ -180,37 +180,37 @@ To show the `Transfer funds` window, click the `Tools` menu. Then, from the popu
  * `Transfer funds from any address` (mode 3)
 
 The same you can achieve by clicking of the three buttons from the right side of the app's toolbar:
-![Transfer masternode funds window](doc/img/cmt-transfer-funds-tool-buttons.png)
+![Transfer masternode funds window](doc/img/dmt-transfer-funds-tool-buttons.png)
 
 Transferring funds from masternode collateral addresses (mode 2):  
-![Transfer masternode funds window](doc/img/cmt-transfer-funds.png)
+![Transfer masternode funds window](doc/img/dmt-transfer-funds.png)
 
 Transferring funds from any address controlled by a hardware wallet, using BIP32 path as an input (mode 3):  
-![Transfer funds from any address window](doc/img/cmt-transfer-funds-any-address.png)
+![Transfer funds from any address window](doc/img/dmt-transfer-funds-any-address.png)
 
 and using *wallet account* as an input (mode 3):  
-![Transfer funds from any address window](doc/img/cmt-transfer-funds-any-address-account.png)
+![Transfer funds from any address window](doc/img/dmt-transfer-funds-any-address-account.png)
 
 > Important: rows with a red font in the *Confirmations* column and a gray background are related to so-called *coinbase* transactions, that don't have the required number of confirmations to forward them. You should restrain from sending them and wait for them to receive at least 100 confirmations. 
 
 To send funds, select all *UTXOs* you wish to include in your transaction, enter the details of the recipient(s), verify the transaction fee and click the `Prepare Transaction` button on the bottom: 
-![Broadcast signed transaction confirmation](doc/img/cmt-transfer-funds-select-utxos.png)
+![Broadcast signed transaction confirmation](doc/img/dmt-transfer-funds-select-utxos.png)
 
 After signing the transaction with your hardware wallet, the application will display a summary and will ask you for confirmation for broadcasting the signed transaction to the Crown network.  
-![Broadcast signed transaction confirmation](doc/img/cmt-transfer-funds-broadcast.png)
+![Broadcast signed transaction confirmation](doc/img/dmt-transfer-funds-broadcast.png)
 
 After clicking `Send Transaction`, the application broadcasts the transaction and then shows a confirmation with a transaction ID as a hyperlink directing to a Crown block explorer:  
-![Transaction sent](doc/img/cmt-transfer-funds-confirmation.png)
+![Transaction sent](doc/img/dmt-transfer-funds-confirmation.png)
 
 ## Signing messages with a hardware wallet
 
 To sign a message with your hardware wallet, click the `Tools` button and then select the `Sign message with HW for current Masternode's address` menu item. The `Sign message` window appears:  
-![Sign message window](doc/img/cmt-hw-sign-message.png)
+![Sign message window](doc/img/dmt-hw-sign-message.png)
 
 ## Changing hardware wallet PIN/passphrase
 
 Click the `Tools` button and select the `Hardware wallet PIN/Passphrase configuration` item. The following window will appear to guide you through the steps of changing the PIN/passphrase:  
-![Hardware wallet setup window](doc/img/cmt-hardware-wallet-config.png)
+![Hardware wallet setup window](doc/img/dmt-hardware-wallet-config.png)
 
 ## Downloads
 
