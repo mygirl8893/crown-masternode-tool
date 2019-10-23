@@ -558,7 +558,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         """
         try:
             response = urllib.request.urlopen(
-                'https://raw.githubusercontent.com/Bertrand256/crown-masternode-tool/master/app-params.json',
+                'https://raw.githubusercontent.com/defunctec/crown-masternode-tool/master/app-params.json',
                 context=ssl._create_unverified_context())
             contents = response.read()
 

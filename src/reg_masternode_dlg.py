@@ -972,8 +972,8 @@ class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUt
                 ads = spk.get('addresses')
                 if not ads or len(ads) < 0:
                     raise Exception('The collateral transaction output doesn\'t have the Crown address assigned.')
-                if vout.get('valueSat') != 1000e8:
-                    raise Exception('The value of the collateral transaction output is not equal to 1000 Crown.')
+                if vout.get('valueSat') != 10000e8:
+                    raise Exception('The value of the collateral transaction output is not equal to 10000 Crown.')
 
                 self.dmn_collateral_tx_address = ads[0]
             else:

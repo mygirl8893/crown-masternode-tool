@@ -262,7 +262,7 @@ class Ui_ConfigDlg(object):
         self.chbBackupConfigFile.setText(_translate("ConfigDlg", "Backup config file"))
         self.chbConfirmWhenVoting.setText(_translate("ConfigDlg", "Ask for confirmation when voting (proposals)"))
         self.chbAddRandomOffsetToVotingTime.setText(_translate("ConfigDlg", "Add random offset to a vote time to enhance privacy (proposals)"))
-        self.chbDownloadProposalExternalData.setText(_translate("ConfigDlg", "Download external proposal attributes (CrownCentral.org)"))
+        self.chbDownloadProposalExternalData.setText(_translate("ConfigDlg", "Download external proposal attributes (CrownCentral.net)"))
         self.chbDontUseFileDialogs.setText(_translate("ConfigDlg", "Don\'t use file dialogs"))
         self.lblLogLevel.setText(_translate("ConfigDlg", "Log level:"))
         self.cboLogLevel.setItemText(0, _translate("ConfigDlg", "Critical"))

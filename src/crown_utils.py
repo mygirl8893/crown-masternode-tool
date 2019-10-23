@@ -57,25 +57,25 @@ class ChainParamsTestNet(ChainParams):
     BIP44_COIN_TYPE = 1
 
 
-def get_chain_params(dash_network: str) -> typing.ClassVar[ChainParams]:
-    if dash_network == 'MAINNET':
+def get_chain_params(crown_network: str) -> typing.ClassVar[ChainParams]:
+    if crown_network == 'MAINNET':
         return ChainParamsMainNet
-    elif dash_network == 'TESTNET':
+    elif crown_network == 'TESTNET':
         return ChainParamsTestNet
     else:
         raise Exception('Invalid \'network\' value.')
 
 
-def get_default_bip32_path(dash_network: str):
-    return bip32_path_n_to_string([44 + 0x80000000, get_chain_params(dash_network).BIP44_COIN_TYPE + 0x80000000, 0x80000000, 0, 0])
+def get_default_bip32_path(crown_network: str):
+    return bip32_path_n_to_string([44 + 0x80000000, get_chain_params(crown_network).BIP44_COIN_TYPE + 0x80000000, 0x80000000, 0, 0])
 
 
-def get_default_bip32_base_path(dash_network: str):
-    return bip32_path_n_to_string([44 + 0x80000000, get_chain_params(dash_network).BIP44_COIN_TYPE + 0x80000000])
+def get_default_bip32_base_path(crown_network: str):
+    return bip32_path_n_to_string([44 + 0x80000000, get_chain_params(crown_network).BIP44_COIN_TYPE + 0x80000000])
 
 
-def get_default_bip32_base_path_n(dash_network: str):
-    return [44 + 0x80000000, get_chain_params(dash_network).BIP44_COIN_TYPE + 0x80000000]
+def get_default_bip32_base_path_n(crown_network: str):
+    return [44 + 0x80000000, get_chain_params(crown_network).BIP44_COIN_TYPE + 0x80000000]
 
 
 def validate_bip32_path(path: str) -> bool:
@@ -89,11 +89,11 @@ def validate_bip32_path(path: str) -> bool:
         return False
 
 
-def pubkey_to_address(pub_key, dash_network: str):
+def pubkey_to_address(pub_key, crown_network: str):
     """Convert public key to a Crown address."""
     pubkey_bin = bytes.fromhex(pub_key)
     pub_hash = bitcoin.bin_hash160(pubkey_bin)
-    data = bytes([get_chain_params(dash_network).PREFIX_PUBKEY_ADDRESS]) + pub_hash
+    data = bytes([get_chain_params(crown_network).PREFIX_PUBKEY_ADDRESS]) + pub_hash
     checksum = bitcoin.bin_dbl_sha256(data)[0:4]
     return base58.b58encode(data + checksum)
 
@@ -111,24 +111,24 @@ def address_to_pubkey_hash(address: str) -> typing.Optional[bytes]:
     return None
 
 
-def wif_privkey_to_address(privkey: str, dash_network: str):
+def wif_privkey_to_address(privkey: str, crown_network: str):
     pubkey = wif_privkey_to_pubkey(privkey)
-    return pubkey_to_address(pubkey, dash_network)
+    return pubkey_to_address(pubkey, crown_network)
 
 
-def validate_address(address: str, dash_network: typing.Optional[str]) -> bool:
+def validate_address(address: str, crown_network: typing.Optional[str]) -> bool:
     """Validates if the 'address' is a valid Crown address.
     :address: address to be validated
-    :dash_network: the dash network type against which the address will be validated; if the value is None, then
+    :crown_network: the crown network type against which the address will be validated; if the value is None, then
       the network type prefix validation will be skipped
     """
     try:
         data = base58.b58decode(address)
         if len(data) > 5:
             prefix = data[0]
-            if dash_network:
-                prefix_valid = (prefix == get_chain_params(dash_network).PREFIX_PUBKEY_ADDRESS or
-                                prefix == get_chain_params(dash_network).PREFIX_SCRIPT_ADDRESS)
+            if crown_network:
+                prefix_valid = (prefix == get_chain_params(crown_network).PREFIX_PUBKEY_ADDRESS or
+                                prefix == get_chain_params(crown_network).PREFIX_SCRIPT_ADDRESS)
             else:
                 prefix_valid = (prefix == ChainParamsMainNet.PREFIX_PUBKEY_ADDRESS or
                                 prefix == ChainParamsMainNet.PREFIX_SCRIPT_ADDRESS or
@@ -144,7 +144,7 @@ def validate_address(address: str, dash_network: typing.Optional[str]) -> bool:
     return False
 
 
-def generate_wif_privkey(dash_network: str, compressed: bool = False):
+def generate_wif_privkey(crown_network: str, compressed: bool = False):
     """
     Based on Andreas Antonopolous work from 'Mastering Bitcoin'.
     """
@@ -156,18 +156,18 @@ def generate_wif_privkey(dash_network: str, compressed: bool = False):
         valid = 0 < decoded_private_key < bitcoin.N
     if compressed:
         privkey += '01'
-    data = bytes([get_chain_params(dash_network).PREFIX_SECRET_KEY]) + bytes.fromhex(privkey)
+    data = bytes([get_chain_params(crown_network).PREFIX_SECRET_KEY]) + bytes.fromhex(privkey)
     checksum = bitcoin.bin_dbl_sha256(data)[0:4]
     return base58.b58encode(data + checksum)
 
 
-def validate_wif_privkey(privkey: str, dash_network: str):
+def validate_wif_privkey(privkey: str, crown_network: str):
     try:
         data = base58.b58decode(privkey)
         if len(data) not in (37, 38):
             raise Exception('Invalid private key length')
 
-        if data[0] != get_chain_params(dash_network).PREFIX_SECRET_KEY:
+        if data[0] != get_chain_params(crown_network).PREFIX_SECRET_KEY:
             raise Exception('Invalid private key prefix.')
 
         checksum = data[-4:]
@@ -294,13 +294,13 @@ def read_varint_from_file(fptr: typing.BinaryIO) -> int:
     return value
 
 
-def wif_to_privkey(wif_key: str, dash_network: str):
+def wif_to_privkey(wif_key: str, crown_network: str):
     """
     Based on project: https://github.com/chaeplin/dashmnb with some changes related to usage of bitcoin library.
     """
     privkey_encoded = base58.b58decode(wif_key).hex()
     wif_prefix_cur = privkey_encoded[:2]
-    wif_prefix_network = get_chain_params(dash_network).PREFIX_SECRET_KEY
+    wif_prefix_network = get_chain_params(crown_network).PREFIX_SECRET_KEY
     wif_prefix_network_str = wif_prefix_network.to_bytes(1, byteorder='big').hex()
     checksum_stored = privkey_encoded[-8:]
 
@@ -348,13 +348,13 @@ def electrum_sig_hash(message):
     return bitcoin.dbl_sha256(padded)
 
 
-def ecdsa_sign(msg: str, wif_priv_key: str, dash_network: str):
+def ecdsa_sign(msg: str, wif_priv_key: str, crown_network: str):
     """Signs a message with the Elliptic Curve algorithm.
     """
 
     v, r, s = bitcoin.ecdsa_raw_sign(electrum_sig_hash(msg), wif_priv_key)
     sig = bitcoin.encode_sig(v, r, s)
-    pubkey = bitcoin.privkey_to_pubkey(wif_to_privkey(wif_priv_key, dash_network))
+    pubkey = bitcoin.privkey_to_pubkey(wif_to_privkey(wif_priv_key, crown_network))
 
     ok = bitcoin.ecdsa_raw_verify(electrum_sig_hash(msg), bitcoin.decode_sig(sig), pubkey)
     if not ok:
@@ -362,13 +362,13 @@ def ecdsa_sign(msg: str, wif_priv_key: str, dash_network: str):
     return sig
 
 
-def ecdsa_sign_raw(msg_raw: bytes, wif_priv_key: str, dash_network: str):
+def ecdsa_sign_raw(msg_raw: bytes, wif_priv_key: str, crown_network: str):
     """Signs raw bytes (a message hash) with the Elliptic Curve algorithm.
     """
 
     v, r, s = bitcoin.ecdsa_raw_sign(msg_raw, wif_priv_key)
     sig = bitcoin.encode_sig(v, r, s)
-    pubkey = bitcoin.privkey_to_pubkey(wif_to_privkey(wif_priv_key, dash_network))
+    pubkey = bitcoin.privkey_to_pubkey(wif_to_privkey(wif_priv_key, crown_network))
 
     ok = bitcoin.ecdsa_raw_verify(msg_raw, bitcoin.decode_sig(sig), pubkey)
     if not ok:
@@ -422,7 +422,7 @@ def bip32_path_string_append_elem(path_str: str, elem: int):
     return bip32_path_n_to_string(path_n)
 
 
-def compose_tx_locking_script(dest_address, dash_newtork: str):
+def compose_tx_locking_script(dest_address, crown_newtork: str):
     """
     Create a Locking script (ScriptPubKey) that will be assigned to a transaction output.
     :param dest_address: destination address in Base58Check format
@@ -433,7 +433,7 @@ def compose_tx_locking_script(dest_address, dash_newtork: str):
     if len(pubkey_hash) != 20:
         raise Exception('Invalid length of the public key hash: ' + str(len(pubkey_hash)))
 
-    if dest_address[0] in get_chain_params(dash_newtork).B58_PREFIXES_PUBKEY_ADDRESS:
+    if dest_address[0] in get_chain_params(crown_newtork).B58_PREFIXES_PUBKEY_ADDRESS:
         # sequence of opcodes/arguments for p2pkh (pay-to-public-key-hash)
         scr = OP_DUP + \
               OP_HASH160 + \
@@ -441,7 +441,7 @@ def compose_tx_locking_script(dest_address, dash_newtork: str):
               pubkey_hash + \
               OP_EQUALVERIFY + \
               OP_CHECKSIG
-    elif dest_address[0] in get_chain_params(dash_newtork).B58_PREFIXES_SCRIPT_ADDRESS:
+    elif dest_address[0] in get_chain_params(crown_newtork).B58_PREFIXES_SCRIPT_ADDRESS:
         # sequence of opcodes/arguments for p2sh (pay-to-script-hash)
         scr = OP_HASH160 + \
               int.to_bytes(len(pubkey_hash), 1, byteorder='little') + \
@@ -462,7 +462,7 @@ def extract_pkh_from_locking_script(script):
     raise Exception('Non-standard locking script type (should be P2PKH)')
 
 
-def convert_dash_xpub(xpub, dest_prefix: str):
+def convert_crown_xpub(xpub, dest_prefix: str):
     if dest_prefix != xpub[0:4]:
         if dest_prefix == 'xpub':
             raw = Base58.check_decode(xpub)
@@ -519,20 +519,20 @@ class CMasternodePing(object):
         hash = bitcoin.bin_dbl_sha256(bytes.fromhex(self.sig_message))
         return hash
 
-    def sign_message(self, priv_key, dash_network):
+    def sign_message(self, priv_key, crown_network):
         self.sig_message = f'CTxIn(COutPoint({self.mn_outpoint.hash.hex()}, {self.mn_outpoint.index}), ' \
                            f'scriptSig=){self.block_hash.hex()}{str(self.sig_time)}'
-        r = ecdsa_sign(self.sig_message, priv_key, dash_network)
+        r = ecdsa_sign(self.sig_message, priv_key, crown_network)
         self.sig = base64.b64decode(r)
         return self.sig
 
-    def sign(self, priv_key, dash_network, is_spork6_active: bool):
+    def sign(self, priv_key, crown_network, is_spork6_active: bool):
         if is_spork6_active:
             hash = self.get_hash()
-            r = ecdsa_sign_raw(hash, priv_key, dash_network)
+            r = ecdsa_sign_raw(hash, priv_key, crown_network)
             self.sig = base64.b64decode(r)
         else:
-            self.sig = self.sign_message(priv_key, dash_network)
+            self.sig = self.sign_message(priv_key, crown_network)
         return self.sig
 
     def serialize(self):
@@ -600,9 +600,9 @@ class CMasternodeBroadcast(object):
         return str_for_serialize
 
     def sign(self, collateral_bip32_path: str, hw_sign_message_fun: typing.Callable, hw_session,
-             mn_privkey_wif: str, dash_network: str):
+             mn_privkey_wif: str, crown_network: str):
 
-        self.mn_ping.sign(mn_privkey_wif, dash_network, is_spork6_active=self.spork6_active)
+        self.mn_ping.sign(mn_privkey_wif, crown_network, is_spork6_active=self.spork6_active)
 
         str_for_serialize = self.get_message_to_sign()
         self.sig = hw_sign_message_fun(hw_session, collateral_bip32_path, str_for_serialize)
