@@ -1,9 +1,9 @@
 {
   "appCurrentVersion": "0.9.26-hotfix2",
   "exeDownloads": {
-    "mac": "https://github.com/walkjivefly/crown-masternode-tool/releases/download/v0.9.26/CrownMasternodeTool_0.9.26-hotfix2.mac.dmg",
-    "win64": "https://github.com/walkjivefly/crown-masternode-tool/releases/download/v0.9.26/CrownMasternodeTool_0.9.26-hotfix2.win64.zip",
-    "linux": "https://github.com/walkjivefly/crown-masternode-tool/releases/download/v0.9.26/CrownMasternodeTool_0.9.26-hotfix2.linux.tar.gz"
+    "mac": "https://github.com/defunctec/crown-masternode-tool/releases/download/v0.9.26/CrownMasternodeTool_0.9.26-hotfix2.mac.dmg",
+    "win64": "https://github.com/defunctec/crown-masternode-tool/releases/download/v0.9.26/CrownMasternodeTool_0.9.26-hotfix2.win64.zip",
+    "linux": "https://github.com/defunctec/crown-masternode-tool/releases/download/v0.9.26/CrownMasternodeTool_0.9.26-hotfix2.linux.tar.gz"
   },
   "defaultCrowndProtocol": {
     "mainnet": 70057,

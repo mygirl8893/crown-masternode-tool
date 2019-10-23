@@ -1,6 +1,6 @@
 FROM ubuntu:17.10
 MAINTAINER \
-[walkjivefly <mark@walkjivefly.com>]
+[defunctec <defuncteconomics@gmail.com>]
 RUN apt-get update \
  && apt-get -y upgrade \
  && apt-get -y install libudev-dev libusb-1.0-0-dev libfox-1.6-dev autotools-dev autoconf automake libtool libpython3-all-dev python3.6-dev python3-pip git cmake \
@@ -11,7 +11,7 @@ RUN apt-get update \
  && virtualenv -p python3 venv \
  && . venv/bin/activate \
  && pip install --upgrade setuptools \
- && git clone https://github.com/walkjivefly/crown-masternode-tool \
+ && git clone https://github.com/defunctec/crown-masternode-tool \
  && cd crown-masternode-tool/ \
  && pip install -r requirements.txt \
  && cd ~/cmt \

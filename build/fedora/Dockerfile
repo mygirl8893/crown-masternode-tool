@@ -1,6 +1,6 @@
 FROM fedora
 MAINTAINER \
-[walkjivefly <mark@walkjivefly.com>]
+[defunctec <defuncteconomics@gmail.com>>]
 RUN yum update -y \
  && yum group install -y "Development Tools" "Development Libraries" \
  && yum install -y redhat-rpm-config python3-devel libusbx-devel libudev-devel cmake gcc-c++ \
@@ -12,7 +12,7 @@ RUN yum update -y \
  && virtualenv -p python3 venv \
  && . venv/bin/activate \
  && pip install --upgrade setuptools \
- && git clone https://github.com/walkjivefly/crown-masternode-tool \
+ && git clone https://github.com/defunctec/crown-masternode-tool \
  && cd crown-masternode-tool/ \
  && pip install -r requirements.txt \
  && cd ~/cmt \
