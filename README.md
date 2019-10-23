@@ -60,7 +60,7 @@ This README uses the term "masternode" to refer to both kinds of node and the Cr
     * [macOS](doc/build-dmt-mac.md)
     * [Windows](doc/build-dmt-windows.md)
     * Linux
-       * [Ubuntu](doc/build-dmt-linux-ubuntu.md)
+       * [Ubuntu](doc/build-cmt-linux-ubuntu.md)
        * [Fedora](doc/build-dmt-linux-fedora.md)
  * [Downloads](https://github.com/Bertrand256/crown-masternode-tool/releases/latest)
  * [Changelog](changelog.md)
