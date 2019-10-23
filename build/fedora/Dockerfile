@@ -1,6 +1,6 @@
 FROM fedora
 MAINTAINER \
-[defunctec <defuncteconomics@gmail.com>>]
+[defunctec <defuncteconomics@gmail.com>]
 RUN yum update -y \
  && yum group install -y "Development Tools" "Development Libraries" \
  && yum install -y redhat-rpm-config python3-devel libusbx-devel libudev-devel cmake gcc-c++ \
