@@ -933,7 +933,7 @@ class CrowndInterface(WndUtils):
         if self.open():
             try:
                 syn = self.proxy.mnsync('status')
-                return syn.get('IsSynced')
+                return syn.get('IsBlockChainSynced')
             except JSONRPCException as e:
                 if str(e).lower().find('403 forbidden') >= 0:
                     self.http_conn.close()

@@ -58,7 +58,7 @@ from ui import ui_main_dlg
 
 class DispMessage(object):
     NEW_VERSION = 1
-    DASH_NET_CONNECTION = 2
+    CROWN_NET_CONNECTION = 2
 
     def __init__(self, message: str, type: str):
         """
@@ -558,7 +558,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         """
         try:
             response = urllib.request.urlopen(
-                'https://raw.githubusercontent.com/defunctec/crown-masternode-tool/master/app-params.json',
+                'https://raw.githubusercontent.com/walkjivefly/crown-masternode-tool/master/app-params.json',
                 context=ssl._create_unverified_context())
             contents = response.read()
 
@@ -687,15 +687,15 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                         break
                     mnsync = self.crownd_intf.mnsync()
                     self.add_app_message(
-                        DispMessage.DASH_NET_CONNECTION,
+                        DispMessage.CROWN_NET_CONNECTION,
                         'Crownd is synchronizing: AssetID: %s, AssetName: %s' %
                         (str(mnsync.get('AssetID', '')), str(mnsync.get('AssetName', ''))), 'warn')
                     cond.wait(mtx, 5000)
-                self.del_app_message(DispMessage.DASH_NET_CONNECTION)
+                self.del_app_message(DispMessage.CROWN_NET_CONNECTION)
             except Exception as e:
                 self.is_crownd_syncing = False
                 self.crownd_connection_ok = False
-                self.add_app_message(DispMessage.DASH_NET_CONNECTION, str(e), 'error')
+                self.add_app_message(DispMessage.CROWN_NET_CONNECTION, str(e), 'error')
             finally:
                 mtx.unlock()
                 self.wait_for_crownd_synced_thread = None
@@ -718,7 +718,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                                                                             on_thread_finish=connect_finished)
                 else:
                     self.is_crownd_syncing = False
-                self.del_app_message(DispMessage.DASH_NET_CONNECTION)
+                self.del_app_message(DispMessage.CROWN_NET_CONNECTION)
             except Exception as e:
                 err = str(e)
                 if not err:
@@ -726,7 +726,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 self.is_crownd_syncing = False
                 self.crownd_connection_ok = False
                 self.show_connection_failed()
-                self.add_app_message(DispMessage.DASH_NET_CONNECTION, err, 'error')
+                self.add_app_message(DispMessage.CROWN_NET_CONNECTION, err, 'error')
 
         def connect_finished():
             """

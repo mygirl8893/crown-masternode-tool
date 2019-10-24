@@ -9,7 +9,6 @@
     "mainnet": 70057,
     "testnet": 70057
   },
-//todo: check/change/create Crown specific matching sporks
   "sporks": [
     {
       "name": "SPORK_6_NEW_SIGS",
@@ -26,7 +25,6 @@
       }
     }
   ],
-//todo: investigate and adpat these features
   "features": {
     "NON_DETERMINISTIC_MNS": {
       "mainnet": {
