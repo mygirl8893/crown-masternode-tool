@@ -329,14 +329,14 @@ class CrowndSSH(object):
             config = {}
             if pid:
                 crownd_running = True
-                # using crownd pid find its executable path and then .crowncore directory and finally crown.conf file
+                # using crownd pid find its executable path and then .crown directory and finally crown.conf file
                 executables = self.remote_command('ls -l /proc/' + str(pid) + '/exe')
                 if executables and len(executables) >= 1:
                     elems = executables[0].split('->')
                     if len(elems) == 2:
                         executable = elems[1].strip()
                         crownd_dir = os.path.dirname(executable)
-                        crown_conf_file = crownd_dir + '/.crowncore/crown.conf'
+                        crown_conf_file = crownd_dir + '/.crown/crown.conf'
                         conf_lines = []
                         try:
                             conf_lines = self.remote_command('cat ' + crown_conf_file)
@@ -348,13 +348,13 @@ class CrowndSSH(object):
                                 elems = cwd_lines[0].split('->')
                                 if len(elems) >= 2:
                                     cwd = elems[1]
-                                    crown_conf_file = cwd + '/.crowncore/crown.conf'
+                                    crown_conf_file = cwd + '/.crown/crown.conf'
                                     try:
                                         conf_lines = self.remote_command('cat ' + crown_conf_file)
                                     except Exception as e:
                                         # second method did not suceed, so assume, that conf file is located
-                                        # i /home/<username>/.crowncore directory
-                                        crown_conf_file = '/home/' + self.username + '/.crowncore/crown.conf'
+                                        # i /home/<username>/.crown directory
+                                        crown_conf_file = '/home/' + self.username + '/.crown/crown.conf'
                                         conf_lines = self.remote_command('cat ' + crown_conf_file)
 
                         for line in conf_lines:

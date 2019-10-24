@@ -24,7 +24,7 @@ The communication is set up as follows:
 
 The procedure is similar to the RPC/indexing [procedure](config-connection-direct.md#2-enable-json-rpc-and-indexing-in-the-crown-core) for a local RPC node scenario.
  * Log in to the server running the Crown daemon (*crownd*) with a SSH terminal.
- * Change to the *crownd* configuration directory: `cd ~/.crowncore`
+ * Change to the *crownd* configuration directory: `cd ~/.crown`
  * Open the `crown.conf` file with your preferred text editor: `nano crown.conf`
  * Enter the configuration parameters listed [here](config-connection-direct.md#set-the-required-parameters-in-the-crownconf-file).
  * Stop the *crownd* process: `./crown-cli stop`
