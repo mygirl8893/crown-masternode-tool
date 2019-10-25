@@ -233,8 +233,8 @@ class Proposal(AttrsProtected):
         gi = self.get_governance_info()
         cycle_blocks = gi.get('superblockcycle', 16616)
         last_superblock = gi.get('lastsuperblock', 0)
-        cycle_seconds = cycle_blocks * 2.5 * 60
-        self.budget_cycle_hours = round(cycle_blocks * 2.5)
+        cycle_seconds = cycle_blocks * 60
+        self.budget_cycle_hours = round(cycle_blocks)
 
         payment_start = self.get_value('payment_start')
         if payment_start:
@@ -1086,7 +1086,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             # get the date-time of the last superblock and calculate the date-time of the next one
             self.governanceinfo = self.crownd_intf.getgovernanceinfo()
             self.superblock_cycle = self.governanceinfo.get('superblockcycle', 16616)
-            self.budget_cycle_days = round(self.superblock_cycle * 2.5 / 60 /24, 3)
+            self.budget_cycle_days = round(self.superblock_cycle / 60 /24, 3)
             self.propsModel.set_budget_cycle_days(self.budget_cycle_days)
 
             self.last_superblock = self.governanceinfo.get('lastsuperblock')
@@ -1101,15 +1101,15 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             self.last_superblock_time = self.get_block_timestamp(self.last_superblock)
             self.next_superblock_time = 0
             if self.cur_block_height > 0 and self.cur_block_height <= self.next_superblock:
-                self.next_superblock_time = self.get_block_timestamp(self.cur_block_height) + (self.next_superblock - self.cur_block_height) * 2.5 * 60
+                self.next_superblock_time = self.get_block_timestamp(self.cur_block_height) + (self.next_superblock - self.cur_block_height) * 60
 
             if self.next_superblock_time == 0:
-                self.next_superblock_time = self.last_superblock_time + (self.next_superblock - self.last_superblock) * 2.5 * 60
+                self.next_superblock_time = self.last_superblock_time + (self.next_superblock - self.last_superblock) * 60
 
             deadline_block = self.next_superblock - sb_cycle
             self.voting_deadline_passed = deadline_block <= self.cur_block_height < self.next_superblock
 
-            self.next_voting_deadline = self.next_superblock_time - (sb_cycle * 2.5 * 60)
+            self.next_voting_deadline = self.next_superblock_time - (sb_cycle * 60)
             self.display_budget_summary()
 
         except Exception as e:
@@ -1139,11 +1139,11 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             superblock = self.last_superblock
             sb_ts = self.last_superblock_time
             while True:
-                if sb_ts + (self.superblock_cycle * 2.5 * 60) > timestamp:
+                if sb_ts + (self.superblock_cycle * 60) > timestamp:
                     return superblock
                 else:
                     superblock += self.superblock_cycle
-                    sb_ts += (self.superblock_cycle * 2.5 * 60)
+                    sb_ts += (self.superblock_cycle * 60)
 
     def find_next_superblock(self, timestamp: int):
         if timestamp < self.last_superblock_time:
@@ -1160,11 +1160,11 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             superblock = self.last_superblock
             sb_ts = self.last_superblock_time
             while True:
-                if sb_ts + (self.superblock_cycle * 2.5 * 60) > timestamp:
+                if sb_ts + (self.superblock_cycle * 60) > timestamp:
                     return superblock + self.superblock_cycle
                 else:
                     superblock += self.superblock_cycle
-                    sb_ts += (self.superblock_cycle * 2.5 * 60)
+                    sb_ts += (self.superblock_cycle * 60)
 
     def refresh_filter(self):
         self.propsModel.invalidateFilter()
