@@ -526,13 +526,8 @@ class CMasternodePing(object):
         self.sig = base64.b64decode(r)
         return self.sig
 
-    def sign(self, priv_key, crown_network, is_spork6_active: bool):
-        if is_spork6_active:
-            hash = self.get_hash()
-            r = ecdsa_sign_raw(hash, priv_key, crown_network)
-            self.sig = base64.b64decode(r)
-        else:
-            self.sig = self.sign_message(priv_key, crown_network)
+    def sign(self, priv_key, crown_network):
+        self.sig = self.sign_message(priv_key, crown_network)
         return self.sig
 
     def serialize(self):
@@ -576,8 +571,7 @@ class CMasternodeBroadcast(object):
                  block_hash: bytes,
                  sig_time: int,
                  protocol_version: int,
-                 rpc_node_protocol_version: int,
-                 spork6_active: bool):
+                 rpc_node_protocol_version: int):
 
         self.mn_ip: str = mn_ip
         self.mn_port: int = mn_port
@@ -588,7 +582,6 @@ class CMasternodeBroadcast(object):
         self.protocol_version: int = protocol_version
         self.collateral_outpoint = COutPoint(collateral_tx, int(collateral_tx_index))
         self.rpc_node_protocol_version = rpc_node_protocol_version
-        self.spork6_active = spork6_active
         self.mn_ping: CMasternodePing = CMasternodePing(self.collateral_outpoint, block_hash, sig_time,
                                                         rpc_node_protocol_version)
 
@@ -602,7 +595,7 @@ class CMasternodeBroadcast(object):
     def sign(self, collateral_bip32_path: str, hw_sign_message_fun: typing.Callable, hw_session,
              mn_privkey_wif: str, crown_network: str):
 
-        self.mn_ping.sign(mn_privkey_wif, crown_network, is_spork6_active=self.spork6_active)
+        self.mn_ping.sign(mn_privkey_wif, crown_network)
 
         str_for_serialize = self.get_message_to_sign()
         self.sig = hw_sign_message_fun(hw_session, collateral_bip32_path, str_for_serialize)
