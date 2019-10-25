@@ -820,7 +820,7 @@ class AppConfig(QObject):
                                         logging.warning('Error while setting RPC encryption key: ' + str(e))
                             else:
                                 # not existent rpc_encryption_pubkey parameter in the configuration file could mean
-                                # we are opwnninf the old configuration file or the parameter was deleted by the old
+                                # we are opening the old configuration file or the parameter was deleted by the old
                                 # cmt version; if the connection belongs to the default connections, restore
                                 # the RPC encryption key
                                 for c in self.default_rpc_connections:

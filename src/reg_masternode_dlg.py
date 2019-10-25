@@ -100,7 +100,7 @@ class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUt
         self.manual_signed_message = False
         self.last_manual_prepare_string: str = None
         self.wait_for_confirmation_timer_id = None
-        self.show_field_hinds = True
+        self.show_field_hints = True
         self.summary_info = []
         if self.masternode:
             self.dmn_collateral_tx_address_path = self.masternode.collateralBip32Path
@@ -152,11 +152,11 @@ class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUt
 
     def restore_cache_settings(self):
         app_cache.restore_window_size(self)
-        self.show_field_hinds = app_cache.get_value(CACHE_ITEM_SHOW_FIELD_HINTS, True, bool)
+        self.show_field_hints = app_cache.get_value(CACHE_ITEM_SHOW_FIELD_HINTS, True, bool)
 
     def save_cache_settings(self):
         app_cache.save_window_size(self)
-        app_cache.set_value(CACHE_ITEM_SHOW_FIELD_HINTS, self.show_field_hinds)
+        app_cache.set_value(CACHE_ITEM_SHOW_FIELD_HINTS, self.show_field_hints)
 
     def minimize_dialog_height(self):
         def set():
@@ -447,13 +447,13 @@ class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUt
             msg = self.ip_port_validation_err_msg
             style = 'error'
         else:
-            if self.show_field_hinds:
+            if self.show_field_hints:
                 if self.edtIP.text().strip():
                     msg = 'You can leave the IP address and port fields empty if you want to delegate the operator ' \
                           'role to an external entity and you don\'t know their values in advance.'
                     style = 'info'
                 else:
-                    msg = 'If don\'t set the IP address and port fields, the masternode operator will ' \
+                    msg = 'If you don\'t set the IP address and port fields, the masternode operator will ' \
                           'have to issue a ProUpServTx transaction using Crown wallet.'
                     style = 'warning'
         self.set_ctrl_message(self.lblIPMsg, msg, style)
@@ -465,7 +465,7 @@ class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUt
             msg = self.payout_address_validation_err_msg
             style = 'error'
         else:
-            if self.show_field_hinds:
+            if self.show_field_hints:
                 msg = 'The owner\'s payout address can be set to any valid Crown address - it no longer ' \
                       'has to be the same as the collateral address.'
                 style = 'info'
@@ -478,7 +478,7 @@ class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUt
             msg = self.operator_reward_validation_err_msg
             style = 'error'
         else:
-            if self.show_field_hinds:
+            if self.show_field_hints:
                 if self.chbWholeMNReward.isChecked():
                     msg = 'Here you can specify how much of the masternode earnings will go to the ' \
                           'masternode operator.'
@@ -496,7 +496,7 @@ class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUt
             msg = self.owner_key_validation_err_msg
             style = 'error'
         else:
-            if self.show_field_hinds:
+            if self.show_field_hints:
                 if self.dmn_owner_key_type == InputKeyType.PRIVATE:
                     if self.edtOwnerKey.text().strip() == self.owner_pkey_generated:
                         msg = 'This is an automatically generated owner private key. You can enter your own or ' \
@@ -520,7 +520,7 @@ class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUt
             msg = self.operator_key_validation_err_msg
             style = 'error'
         else:
-            if self.show_field_hinds:
+            if self.show_field_hints:
                 if self.dmn_operator_key_type == InputKeyType.PRIVATE:
                     if self.edtOperatorKey.text().strip() == self.operator_pkey_generated:
                         msg = 'This is an automatically generated operator BLS private key. You can enter your ' \
@@ -546,7 +546,7 @@ class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUt
                 msg = self.voting_key_validation_err_msg
                 style = 'error'
             else:
-                if self.show_field_hinds:
+                if self.show_field_hints:
                     if self.dmn_voting_key_type == InputKeyType.PRIVATE:
                         if self.edtVotingKey.text().strip() == self.voting_pkey_generated:
                             msg = 'This is an automatically generated private key for voting. You can enter your own or ' \
@@ -1371,7 +1371,7 @@ class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUt
         return False
 
     def update_show_hints_label(self):
-        if self.show_field_hinds:
+        if self.show_field_hints:
             lbl = '<a href="hide">Hide field descriptions</a>'
         else:
             lbl = '<a href="show">Show field descriptions</a>'
@@ -1380,9 +1380,9 @@ class RegMasternodeDlg(QDialog, ui_reg_masternode_dlg.Ui_RegMasternodeDlg, WndUt
     @pyqtSlot(str)
     def on_lblFieldHints_linkActivated(self, link):
         if link == 'show':
-            self.show_field_hinds = True
+            self.show_field_hints = True
         else:
-            self.show_field_hinds = False
+            self.show_field_hints = False
         self.update_show_hints_label()
         self.update_fields_info(False)
         self.minimize_dialog_height()
