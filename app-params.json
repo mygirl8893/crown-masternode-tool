@@ -11,13 +11,6 @@
   },
   "sporks": [
     {
-      "name": "SPORK_6_NEW_SIGS",
-      "active": {
-        "mainnet": false,
-        "testnet": false
-      }
-    },
-    {
       "name": "SPORK_15_DETERMINISTIC_MNS_ENABLED",
       "active": {
         "mainnet": true,
