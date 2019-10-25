@@ -367,7 +367,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         self.mn_count = None
         self.block_timestamps: Dict[int, int] = {}
         self.governanceinfo = {}
-        self.budget_cycle_days = 28.8
+        self.budget_cycle_days = 30
         self.cur_block_height = 0
         self.cur_block_timestamp = 0
         self.superblock_cycle = None
@@ -854,8 +854,8 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             self.display_message('Reading proposals data, please wait...')
             log.info('Reading proposals from the Crown network.')
             begin_time = time.time()
-            proposals_new = self.crownd_intf.gobject("list", "valid", "proposals")
-            log.info('Read proposals from network (gobject list). Count: %s, operation time: %s' %
+            proposals_new = self.crownd_intf.mnbudget("show")
+            log.info('Read proposals from network (mnbudget show). Count: %s, operation time: %s' %
                          (str(len(proposals_new)), str(time.time() - begin_time)))
 
             rows_added = False
@@ -1083,18 +1083,17 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         try:
             self.display_message('Reading governance data, please wait...')
 
-            # get the date-time of the last superblock and calculate the date-time of the next one
-            self.governanceinfo = self.crownd_intf.getgovernanceinfo()
-            self.superblock_cycle = self.governanceinfo.get('superblockcycle', 16616)
-            self.budget_cycle_days = round(self.superblock_cycle / 60 /24, 3)
+            # get the date-time of the next superblock and calculate the date-time of the last one
+            self.superblock_cycle = 43200
+            self.budget_cycle_days = 30
             self.propsModel.set_budget_cycle_days(self.budget_cycle_days)
 
-            self.last_superblock = self.governanceinfo.get('lastsuperblock')
-            self.next_superblock = self.governanceinfo.get('nextsuperblock')
-            sb_cycle = round(self.governanceinfo.get('superblockcycle') / 10)
-            self.next_budget_amount = float(self.crownd_intf.getsuperblockbudget(self.next_superblock))
+            self.next_superblock = self.crownd_intf.getnextsuperblock()
+            self.last_superblock = self.next_superblock - self.superblock_cycle
+            sb_cycle = 2880
+            self.next_budget_amount = float(self.crownd_intf.getsuperblockbudget())
 
-            # superblocks occur every 16616 blocks (approximately 28.8 days)
+            # superblocks occur every 43200 blocks (approximately 30 days)
             self.cur_block_height = self.crownd_intf.getblockcount()
             self.cur_block_timestamp = int(time.time())
 
@@ -1620,7 +1619,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                 self.display_message('Reading voting data %d of %d' % (row_idx+1, len(proposals)))
                                 tm_begin = time.time()
                                 try:
-                                    votes = self.crownd_intf.rpc_call(False, False, 'gobject', getvotes_fun_name,
+                                    votes = self.crownd_intf.rpc_call(False, False, 'mnbudget', getvotes_fun_name,
                                                                      prop.get_value('hash'))
                                 except Exception:
                                     log.exception('Exception occurred while calling getvotes')

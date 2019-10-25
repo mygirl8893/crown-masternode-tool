@@ -1255,9 +1255,9 @@ class CrowndInterface(WndUtils):
             raise Exception('Not connected')
 
     @control_rpc_call
-    def gobject(self, *args):
+    def mnbudget(self, *args):
         if self.open():
-            return self.proxy.gobject(*args)
+            return self.proxy.mnbudget(*args)
         else:
             raise Exception('Not connected')
 
@@ -1269,16 +1269,16 @@ class CrowndInterface(WndUtils):
             raise Exception('Not connected')
 
     @control_rpc_call
-    def getgovernanceinfo(self):
+    def getnextsuperblock(self):
         if self.open():
-            return self.proxy.getgovernanceinfo()
+            return self.proxy.mnbudget('nextblock')
         else:
             raise Exception('Not connected')
 
     @control_rpc_call
-    def getsuperblockbudget(self, block_index):
+    def getsuperblockbudget(self):
         if self.open():
-            return self.proxy.getsuperblockbudget(block_index)
+            return 54000
         else:
             raise Exception('Not connected')
 
@@ -1375,7 +1375,7 @@ class CrowndInterface(WndUtils):
                     if protx and protx.get('proTxHash') == proregtx_hash:
                         return True
             else:
-                log.warning('Mempool to large to scan for protx transaction. Skipping...')
+                log.warning('Mempool too large to scan for protx transaction. Skipping...')
             return False
         except Exception as e:
             return False
