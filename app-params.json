@@ -13,76 +13,76 @@
     {
       "name": "SPORK_15_DETERMINISTIC_MNS_ENABLED",
       "active": {
-        "mainnet": true,
-        "testnet": true
+        "mainnet": false,
+        "testnet": false
       }
     }
   ],
   "features": {
     "NON_DETERMINISTIC_MNS": {
       "mainnet": {
-        "status": "disabled",
+        "status": "enabled",
         "priority": 4
       },
       "testnet": {
-        "status": "disabled",
+        "status": "enabled",
         "priority": 4
       }
     },
     "DETERMINISTIC_MNS": {
       "mainnet": {
-        "status": "enabled",
+        "status": "disabled",
         "priority": 4
       },
       "testnet": {
-        "status": "enabled",
+        "status": "disabled",
         "priority": 4
       }
     },
     "REGISTER_DMN_AUTOMATIC": {
       "mainnet": {
-        "status": "enabled",
+        "status": "disabled",
         "priority": 4,
         "message": ""
       },
       "testnet": {
-        "status": "enabled",
+        "status": "disabled",
         "priority": 4,
         "message": ""
       }
     },
     "UPDATE_REGISTRAR_AUTOMATIC": {
       "mainnet": {
-        "status": "enabled",
+        "status": "disabled",
         "priority": 4,
         "message": ""
       },
       "testnet": {
-        "status": "enabled",
+        "status": "disabled",
         "priority": 4,
         "message": ""
       }
     },
     "UPDATE_SERVICE_AUTOMATIC": {
       "mainnet": {
-        "status": "enabled",
+        "status": "disabled",
         "priority": 4,
         "message": ""
       },
       "testnet": {
-        "status": "enabled",
+        "status": "disabled",
         "priority": 4,
         "message": ""
       }
     },
     "REVOKE_OPERATOR_AUTOMATIC": {
       "mainnet": {
-        "status": "enabled",
+        "status": "disabled",
         "priority": 4,
         "message": ""
       },
       "testnet": {
-        "status": "enabled",
+        "status": "disabled",
         "priority": 4,
         "message": ""
       }
