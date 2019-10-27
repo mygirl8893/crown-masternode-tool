@@ -77,7 +77,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
 
     def setupUi(self):
         ui_main_dlg.Ui_MainWindow.setupUi(self, self)
-        self.setWindowTitle(APP_NAME_LONG + ' by TheSin' + (
+        self.setWindowTitle(APP_NAME_LONG + ' by walkjivefly' + (
             ' (v. ' + self.config.app_version + ')' if self.config.app_version else ''))
 
         SshPassCache.set_parent_window(self)
@@ -95,7 +95,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         self.lblStatus2 = QtWidgets.QLabel(self)
         self.statusBar.addPermanentWidget(self.lblStatus2, 2)
         self.lblStatus2.setText('')
-        img = QPixmap(os.path.join(self.app_path, "img/tmt.png"))
+        img = QPixmap(os.path.join(self.app_path, "img/cmt.png"))
         img = img.scaled(QSize(64, 64))
         self.lblAbout.setPixmap(img)
         self.setStatus1Text('<b>RPC network status:</b> not connected', 'black')
@@ -364,7 +364,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                         self.on_connection_finished()
                         break
                     mnsync = self.terracoind_intf.mnsync()
-                    self.setMessage('Terracoind is synchronizing: AssetID: %s, AssetName: %s' %
+                    self.setMessage('Crownd is synchronizing: AssetID: %s, AssetName: %s' %
                                         (str(mnsync.get('AssetID', '')),
                                          str(mnsync.get('AssetName', ''))
                                          ), style='{background-color:rgb(255,128,0);color:white;padding:3px 5px 3px 5px; border-radius:3px}')
@@ -389,7 +389,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 self.terracoind_info = self.terracoind_intf.getinfo()
                 self.terracoind_connection_ok = True
                 if not synced:
-                    logging.info("terracoind not synced")
+                    logging.info("crownd not synced")
                     if not self.is_terracoind_syncing and not (hasattr(self, 'wait_for_terracoind_synced_thread') and
                                                                   self.wait_for_terracoind_synced_thread is not None):
                         self.is_terracoind_syncing = True
@@ -450,7 +450,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
 
             if self.terracoind_connection_ok:
                 if self.is_terracoind_syncing:
-                    self.infoMsg('Connection successful, but Terracoin daemon is synchronizing.')
+                    self.infoMsg('Connection successful, but Crown daemon is synchronizing.')
                 else:
                     self.infoMsg('Connection successful.')
             else:
@@ -1112,7 +1112,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 paths, user_cancelled = self.hwScanForBip32Paths([self.curMasternode.collateralAddress])
                 if not user_cancelled:
                     if not paths or len(paths) == 0:
-                        self.errorMsg("Couldn't find Terracoin address in your hardware wallet. If you are using HW passphrase, "
+                        self.errorMsg("Couldn't find Crown address in your hardware wallet. If you are using HW passphrase, "
                                       "make sure, that you entered the correct one.")
                     else:
                         self.edtMnCollateralBip32Path.setText(paths.get(self.curMasternode.collateralAddress, ''))
@@ -1165,10 +1165,10 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
 
         self.checkTerracoindConnection(wait_for_check_finish=True)
         if not self.terracoind_connection_ok:
-            self.errorMsg("Connection to Terracoin daemon is not established.")
+            self.errorMsg("Connection to Crown daemon is not established.")
             return
         if self.is_terracoind_syncing:
-            self.warnMsg("Terracoin daemon to which you are connected is synchronizing. You have to wait "
+            self.warnMsg("Crown daemon to which you are connected is synchronizing. You have to wait "
                          "until it's finished.")
             return
 
@@ -1215,7 +1215,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 self.updateControlsState()
             elif hw_collateral_address != cfg_collateral_address:
                 # verify config's collateral addres with hardware wallet
-                if self.queryDlg(message="The Terracoin address retrieved from the hardware wallet (%s) for the configured "
+                if self.queryDlg(message="The Crown address retrieved from the hardware wallet (%s) for the configured "
                                          "BIP32 path does not match the collateral address entered in the "
                                          "configuration: %s.\n\n"
                                          "Do you really want to continue?" %
@@ -1357,7 +1357,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 if failed_count == 0:
                     self.infoMsg(overall)
                 else:
-                    self.errorMsg('Failed to start masternode.\n\nResponse from Terracoin daemon: %s.' % errorMessage)
+                    self.errorMsg('Failed to start masternode.\n\nResponse from Crown daemon: %s.' % errorMessage)
             else:
                 logging.error('Start MN error: ' + str(ret))
                 errorMessage = ret[list(ret.keys())[0]].get('errorMessage')
@@ -1451,7 +1451,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             else:
                 status = '<span style="color:red">Masternode not found.</span>'
         else:
-            status = '<span style="color:red">Problem with connection to terracoind.</span>'
+            status = '<span style="color:red">Problem with connection to crownd.</span>'
         return status
 
     @pyqtSlot(bool)
@@ -1473,7 +1473,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 self.lblMnStatus.setText('')
                 raise
         else:
-            self.errorMsg('Terracoin daemon not connected')
+            self.errorMsg('Crown daemon not connected')
 
     @pyqtSlot(bool)
     def on_actTransferFundsSelectedMn_triggered(self):
@@ -1486,7 +1486,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 self.errorMsg("Enter the masternode collateral BIP32 path. You can use the 'right arrow' button "
                               "on the right of the 'Collateral' edit box.")
             elif not self.curMasternode.collateralAddress:
-                self.errorMsg("Enter the masternode collateral Terracoin address. You can use the 'left arrow' "
+                self.errorMsg("Enter the masternode collateral Crown address. You can use the 'left arrow' "
                               "button on the left of the 'BIP32 path' edit box.")
             else:
                 src_addresses.append((self.curMasternode.collateralAddress, self.curMasternode.collateralBip32Path))
@@ -1508,14 +1508,14 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 lacking_addresses += 1
         if len(src_addresses):
             if lacking_addresses == 0 or \
-                self.queryDlg("Some of your Masternodes lack the Terracoin addres and/or BIP32 path of the collateral "
+                self.queryDlg("Some of your Masternodes lack the Crown addres and/or BIP32 path of the collateral "
                               "in their configuration. Transactions for these Masternodes will not be listed.\n\n"
                               "Continue?",
                               buttons=QMessageBox.Yes | QMessageBox.Cancel,
                               default_button=QMessageBox.Yes, icon=QMessageBox.Warning) == QMessageBox.Yes:
                 self.executeTransferFundsDialog(src_addresses)
         else:
-            self.errorMsg('No masternode with the BIP32 path and Terracoin address configured.')
+            self.errorMsg('No masternode with the BIP32 path and Crown address configured.')
 
     @pyqtSlot(bool)
     def on_actTransferFundsForAddress_triggered(self):
@@ -1523,14 +1523,14 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         Shows tranfser funds window for address/path specified by the user.
         """
         if not self.terracoind_intf.open():
-            self.errorMsg('Terracoin daemon not connected')
+            self.errorMsg('Crown daemon not connected')
         else:
             ui = send_payout_dlg.SendPayoutDlg([], self)
             ui.exec_()
 
     def executeTransferFundsDialog(self, src_addresses):
         if not self.terracoind_intf.open():
-            self.errorMsg('Terracoin daemon not connected')
+            self.errorMsg('Crown daemon not connected')
         else:
             ui = send_payout_dlg.SendPayoutDlg(src_addresses, self)
             ui.exec_()

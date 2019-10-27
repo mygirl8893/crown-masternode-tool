@@ -272,9 +272,9 @@ class TerracoindSSH(object):
         try:
             # find terracoind process id if running
             try:
-                pids = self.remote_command('ps -C "terracoind" -o pid')
+                pids = self.remote_command('ps -C "crownd" -o pid')
             except UnknownError:
-                raise Exception('is terracoind running on the remote machine?')
+                raise Exception('is crownd running on the remote machine?')
             pid = None
             if isinstance(pids, list):
                 pids = [pid.strip() for pid in pids]
@@ -292,7 +292,7 @@ class TerracoindSSH(object):
                     if len(elems) == 2:
                         executable = elems[1].strip()
                         terracoind_dir = os.path.dirname(executable)
-                        terracoin_conf_file = terracoind_dir + '/.terracoincore/terracoin.conf'
+                        terracoin_conf_file = terracoind_dir + '/.crown/crown.conf'
                         conf_lines = []
                         try:
                             conf_lines = self.remote_command('cat ' + terracoin_conf_file)
@@ -304,13 +304,13 @@ class TerracoindSSH(object):
                                 elems = cwd_lines[0].split('->')
                                 if len(elems) >= 2:
                                     cwd = elems[1]
-                                    terracoin_conf_file = cwd + '/.terracoincore/terracoin.conf'
+                                    terracoin_conf_file = cwd + '/.crown/crown.conf'
                                     try:
                                         conf_lines = self.remote_command('cat ' + terracoin_conf_file)
                                     except Exception as e:
                                         # second method did not suceed, so assume, that conf file is located
                                         # i /home/<username>/.terracoincore directory
-                                        terracoin_conf_file = '/home/' + self.username + '/.terracoincore/terracoin.conf'
+                                        terracoin_conf_file = '/home/' + self.username + '/.crown/crown.conf'
                                         conf_lines = self.remote_command('cat ' + terracoin_conf_file)
 
                         for line in conf_lines:
@@ -339,13 +339,13 @@ class TerracoindIndexException(JSONRPCException):
     def __init__(self, parent_exception):
         JSONRPCException.__init__(self, parent_exception.error)
         self.message = self.message + \
-                       '\n\nMake sure the terracoin daemon you are connecting to has the following options enabled in ' \
-                       'its terracoin.conf:\n\n' + \
+                       '\n\nMake sure the Crown daemon you are connecting to has the following options enabled in ' \
+                       'its crown.conf:\n\n' + \
                        'addressindex=1\n' + \
                        'spentindex=1\n' + \
                        'timestampindex=1\n' + \
                        'txindex=1\n\n' + \
-                       'Changing these parameters requires to execute terracoind with "-reindex" option (linux: ./terracoind -reindex)'
+                       'Changing these parameters requires to execute crownd with "-reindex" option (linux: ./crownd -reindex)'
 
 
 def control_rpc_call(func):
@@ -517,7 +517,6 @@ class TerracoindInterface(WndUtils):
         self.on_connection_try_fail_callback = on_connection_try_fail_callback
         self.on_connection_finished_callback = on_connection_finished_callback
         self.last_error_message = None
-        self.governanceinfo = None  # cached result of getgovernanceinfo query
         self.http_lock = threading.Lock()
 
         cur = self.db_intf.get_cursor()
@@ -580,7 +579,7 @@ class TerracoindInterface(WndUtils):
         self.connections = self.config.get_ordered_conn_list()
         self.cur_conn_index = 0
         if not len(self.connections):
-            raise Exception('There is no connections to Terracoin network enabled in the configuration.')
+            raise Exception('There are no connections to Crown network enabled in the configuration.')
         self.cur_conn_def = self.connections[self.cur_conn_index]
 
     def disconnect(self):
@@ -599,7 +598,7 @@ class TerracoindInterface(WndUtils):
         """
         If there is another terracoind config not used recently, switch to it. Called only when there was a problem
         with current connection config.
-        :return: True if successfully switched or False if there was no another config
+        :return: True if successfully switched or False if there was not another config
         """
         if self.cur_conn_def:
             self.config.conn_cfg_failure(self.cur_conn_def)  # mark connection as defective
@@ -619,7 +618,7 @@ class TerracoindInterface(WndUtils):
             else:
                 return True
         else:
-            logging.warning('Failed to connect: no another connection configurations.')
+            logging.warning('Failed to connect: no more connection configurations.')
             return False
 
     def mark_cur_conn_cfg_is_ok(self):
@@ -634,7 +633,7 @@ class TerracoindInterface(WndUtils):
         """
         try:
             if not self.cur_conn_def:
-                raise Exception('There is no connections to Terracoin network enabled in the configuration.')
+                raise Exception('There is no connections to Crown network enabled in the configuration.')
 
             while True:
                 try:
@@ -712,8 +711,8 @@ class TerracoindInterface(WndUtils):
                 local_port = None
                 for try_nr in range(1, 10):
                     try:
-                        logging.debug('beginning ssh.open_tunnel')
                         local_port = randint(2000, 50000)
+                        logging.debug('beginning ssh.open_tunnel on port ' + str(local_port))
                         self.ssh.open_tunnel(local_port,
                                              self.cur_conn_def.host,
                                              int(self.cur_conn_def.port))
@@ -722,7 +721,7 @@ class TerracoindInterface(WndUtils):
                     except Exception as e:
                         logging.error('error in ssh.open_tunnel loop')
                         pass
-                logging.debug('finished ssh.open_tunnel loop')
+                logging.debug('finished ssh.open_tunnel loop on attempt ' + str(try_nr))
                 if not success:
                     logging.error('finished ssh.open_tunnel loop with error')
                     return False
@@ -747,7 +746,7 @@ class TerracoindInterface(WndUtils):
 
             self.rpc_url += rpc_user + ':' + rpc_password + '@' + rpc_host + ':' + str(rpc_port)
             logging.debug('AuthServiceProxy begin: %s' % self.rpc_url)
-            self.proxy = AuthServiceProxy(self.rpc_url, timeout=1000, connection=self.http_conn)
+            self.proxy = AuthServiceProxy(self.rpc_url, timeout=5000, connection=self.http_conn)
             logging.debug('AuthServiceProxy end')
 
             try:
@@ -807,7 +806,7 @@ class TerracoindInterface(WndUtils):
                 return True
             else:
                 syn = self.proxy.mnsync('status')
-                return syn.get('IsSynced')
+                return syn.get('IsBlockchainSynced')
         else:
             raise Exception('Not connected')
 
@@ -887,16 +886,15 @@ class TerracoindInterface(WndUtils):
                 mn_raw = mns_raw.get(mn_id)
                 mn_raw = mn_raw.strip()
                 elems = mn_raw.split()
-                if len(elems) >= 8:
+                if len(elems) >= 7:
                     mn = Masternode()
-                    # (status, protocol, payee, lastseen, activeseconds, lastpaidtime, pastpaidblock, ip)
-                    mn.status, mn.protocol, mn.payee, mn.lastseen, mn.activeseconds, mn.lastpaidtime, \
-                        mn.lastpaidblock, mn.ip = elems
+                    # (status, protocol, ip, payee, lastseen, activeseconds, lastpaidtime)
+                    mn.status, mn.protocol, mn.ip, mn.payee, mn.lastseen, mn.activeseconds, \
+                        mn.lastpaidtime = elems
 
                     mn.lastseen = int(mn.lastseen)
                     mn.activeseconds = int(mn.activeseconds)
                     mn.lastpaidtime = int(mn.lastpaidtime)
-                    mn.lastpaidblock = int(mn.lastpaidblock)
                     mn.ident = mn_id
                     ret_list.append(mn)
             duration = time.time() - tm_begin
@@ -938,7 +936,7 @@ class TerracoindInterface(WndUtils):
                     logging.info('Using cached masternodelist (data age: %s)' % str(int(time.time()) - last_read_time))
                     return self.masternodes
                 else:
-                    logging.info('Loading masternode list from Terracoin daemon...')
+                    logging.info('Loading masternode list from Crown daemon...')
                     mns = self.proxy.masternodelist(*args)
                     mns = parse_mns(mns)
                     logging.info('Finished loading masternode list')
@@ -1071,9 +1069,9 @@ class TerracoindInterface(WndUtils):
             raise Exception('Not connected')
 
     @control_rpc_call
-    def gobject(self, *args):
+    def mnbudget(self, *args):
         if self.open():
-            return self.proxy.gobject(*args)
+            return self.proxy.mnbudget(*args)
         else:
             raise Exception('Not connected')
 
@@ -1081,15 +1079,6 @@ class TerracoindInterface(WndUtils):
     def masternode(self, *args):
         if self.open():
             return self.proxy.masternode(*args)
-        else:
-            raise Exception('Not connected')
-
-    @control_rpc_call
-    def getgovernanceinfo(self, skip_cache=False):
-        if self.open():
-            if skip_cache or not self.governanceinfo:
-                self.governanceinfo = self.proxy.getgovernanceinfo()
-            return self.governanceinfo
         else:
             raise Exception('Not connected')
 

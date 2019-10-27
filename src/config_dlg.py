@@ -685,14 +685,14 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
                 self.disable_cfg_update = True
                 if isinstance(terracoind_conf, tuple) and len(terracoind_conf) >= 3:
                     if not terracoind_conf[0]:
-                        self.infoMsg('Remore Terracoin daemon seems to be shut down')
+                        self.infoMsg('Remore Crown daemon seems to be shut down')
                     elif not terracoind_conf[1]:
-                        self.infoMsg('Could not find remote terracoind.conf file')
+                        self.infoMsg('Could not find remote crown.conf file')
                     else:
                         file = terracoind_conf[2]
                         rpcuser = file.get('rpcuser', '')
                         rpcpassword = file.get('rpcpassword', '')
-                        rpcport = file.get('rpcport', '13332')
+                        rpcport = file.get('rpcport', '9341')
                         modified = False
                         if rpcuser:
                             modified = modified or (cfg.username != rpcuser)
@@ -712,17 +712,17 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
                             self.is_modified = modified
 
                         if file.get('server', '1') == '0':
-                            self.warnMsg("Remote terracoin.conf parameter 'server' is set to '0', so RPC interface will "
+                            self.warnMsg("Remote crown.conf parameter 'server' is set to '0', so RPC interface will "
                                          "not work.")
                         if not rpcuser:
-                            self.warnMsg("Remote terracoin.conf parameter 'rpcuser' is not set, so RPC interface will  "
+                            self.warnMsg("Remote crown.conf parameter 'rpcuser' is not set, so RPC interface will  "
                                          "not work.")
                         if not rpcpassword:
-                            self.warnMsg("Remote terracoin.conf parameter 'rpcpassword' is not set, so RPC interface will  "
+                            self.warnMsg("Remote crown.conf parameter 'rpcpassword' is not set, so RPC interface will  "
                                          "not work.")
                     self.updateUi()
                 elif isinstance(terracoind_conf, str):
-                    self.warnMsg("Couldn't read remote terracoind configuration file due the following error: " +
+                    self.warnMsg("Couldn't read remote crownd configuration file due the following error: " +
                                  terracoind_conf)
                 ssh.disconnect()
             except Exception as e:

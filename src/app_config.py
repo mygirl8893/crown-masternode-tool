@@ -23,8 +23,8 @@ import app_utils
 from db_intf import DBCache
 from wnd_utils import WndUtils
 
-APP_NAME_SHORT = 'TerracoinMasternodeTool'
-APP_NAME_LONG = 'Terracoin Masternode Tool'
+APP_NAME_SHORT = 'CrownMasternodeTool'
+APP_NAME_LONG = 'Crown Masternode Tool'
 PROJECT_URL = 'https://github.com/TheSin-/terracoin-masternode-tool'
 FEE_SAT_PER_BYTE = 11
 MIN_TX_FEE = 2000
@@ -81,8 +81,8 @@ class AppConfig(object):
                                               #  NFC: compatible with official Keepkey client app
                                               #  NFKD: compatible with Trezor
 
-        self.block_explorer_tx = 'https://insight.terracoin.io/tx/%TXID%'
-        self.block_explorer_addr = 'https://insight.terracoin.io/address/%ADDRESS%'
+        self.block_explorer_tx = 'https://insight-01.crownplatform.com/tx/%TXID%'
+        self.block_explorer_addr = 'https://insight-01.crownplatform.com/%ADDRESS%'
         self.terracoin_services_proposal_api = 'https://services.terracoin.io/api/v1/proposal?hash=%HASH%'
 
         self.check_for_updates = True
@@ -739,7 +739,7 @@ class MasterNodeConfig:
     def __init__(self):
         self.name = ''
         self.ip = ''
-        self.port = '13333'
+        self.port = '9340'
         self.privateKey = ''
         self.collateralBip32Path = ''
         self.collateralAddress = ''

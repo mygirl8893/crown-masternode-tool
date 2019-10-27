@@ -804,14 +804,14 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             self.display_message('Reading proposals data, please wait...')
             logging.info('Reading proposals from the Terracoin network.')
             begin_time = time.time()
-            proposals_new = self.terracoind_intf.gobject("list", "valid", "proposals")
-            logging.info('Read proposals from network (gobject list). Count: %s, operation time: %s' %
+            proposals_new = self.terracoind_intf.mnbudget("show")
+            logging.info('Read proposals from network (mnbudget show). Count: %s, operation time: %s' %
                          (str(len(proposals_new)), str(time.time() - begin_time)))
 
             rows_added = False
 
             # reset marker value in all existing Proposal object - we'll use it to check which
-            # of prevoiusly read proposals do not exit anymore
+            # of prevoiusly read proposals do not exist anymore
             for prop in self.proposals:
                 prop.marker = False
                 prop.modified = False  # all modified proposals will be saved to DB cache
@@ -827,7 +827,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     prop_data = find_prop_data(prop_data_json)
                     if prop_data is None:
                         continue
-                    hash = prop_raw['Hash']
+                    hash = prop_data['Hash']
                     prop = self.proposals_by_hash.get(hash)
                     if not prop:
                         is_new = True
@@ -836,7 +836,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         is_new = False
                     prop.marker = True
 
-                    prop.set_value('name', prop_data['name'])
+                    prop.set_value('name', prop_data['Name'])
                     prop.set_value('payment_start', datetime.datetime.fromtimestamp(int(prop_data['start_epoch'])))
                     prop.set_value('payment_end', datetime.datetime.fromtimestamp(int(prop_data['end_epoch'])))
                     prop.set_value('payment_amount', clean_float(prop_data['payment_amount']))
@@ -1011,16 +1011,16 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             else:
                 # no proposals read from network - skip deactivating records because probably
                 # some network glitch occured
-                logging.warning('No proposals returned from terracoind.')
+                logging.warning('No proposals returned from crownd.')
             logging.info('Finished reading proposals data from network.')
 
         except CloseDialogException:
             logging.info('Closing the dialog.')
 
         except Exception as e:
-            logging.exception('Exception wile reading proposals from Terracoin network.')
+            logging.exception('Exception while reading proposals from Crown network.')
             self.display_message('')
-            self.errorMsg('Error while reading proposals data from the Terracoin network: ' + str(e))
+            self.errorMsg('Error while reading proposals data from the Crown network: ' + str(e))
             raise
 
     def read_data_thread(self, ctrl):
@@ -1029,20 +1029,19 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         """
 
         try:
-            self.display_message('Connecting to Terracoin daemon, please wait...')
+            self.display_message('Connecting to Crown daemon, please wait...')
             if not self.terracoind_intf.open():
-                self.errorMsg('Terracoin daemon not connected')
+                self.errorMsg('Crown daemon not connected')
             else:
                 try:
                     try:
                         self.display_message('Reading governance data, please wait...')
 
-                        # get the date-time of the last superblock and calculate the date-time of the next one
-                        self.governanceinfo = self.terracoind_intf.getgovernanceinfo()
+                        # get the date-time of the next superblock and calculate the date-time of the last one
+                        sb_next = self.terracoind_intf.mnbudget('nextblock')
+                        sb_last = sb_next - 43200
 
-                        sb_last = self.governanceinfo.get('lastsuperblock')
-                        sb_next = self.governanceinfo.get('nextsuperblock')
-                        # superblocks occur every 21600 blocks (approximately 30 days)
+                        # superblocks occur every 43200 blocks (approximately 30 days)
                         cur_block = self.terracoind_intf.getblockcount()
 
                         sb_last_hash = self.terracoind_intf.getblockhash(sb_last)
@@ -1454,7 +1453,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             # that has been added (will be saved to the database cache)
 
             if not self.terracoind_intf.open():
-                self.errorMsg('Terracoin daemon not connected')
+                self.errorMsg('Crown daemon not connected')
             else:
                 try:
                     proposals_updated = []  # list of proposals for which votes were loaded
@@ -1468,7 +1467,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
 
                         self.display_message('Reading voting data %d of %d' % (row_idx+1, len(proposals)))
                         tm_begin = time.time()
-                        votes = self.terracoind_intf.gobject("getvotes", prop.get_value('hash'))
+                        votes = self.terracoind_intf.mnbudget("getvotes", prop.get_value('name'))
                         network_duration += (time.time() - tm_begin)
 
                         for v_key in votes:

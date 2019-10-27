@@ -20,9 +20,9 @@ with open(os.path.join(base_dir, 'version.txt')) as fptr:
             break
 
 add_files = [
- ('img/tmt.png','/img'),
+ ('img/cmt.png','/img'),
  ('img/terracoin.ico','/img'),
- ('img/tmt.ico','/img'),
+ ('img/cmt.ico','/img'),
  ('img/arrow-right.ico','/img'),
  ('img/hw-lock.ico','/img'),
  ('img/hw-test.ico','/img'),
@@ -94,7 +94,7 @@ exe = EXE(pyz,
 if os_type == 'darwin':
     app = BUNDLE(exe,
                  name='TerracoinMasternodeTool.app',
-                 icon='img/tmt.icns',
+                 icon='img/cmt.icns',
                  bundle_identifier=None,
                      info_plist={
                         'NSHighResolutionCapable': 'True'
