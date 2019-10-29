@@ -103,22 +103,23 @@ class DBCache(object):
         cur.execute("CREATE TABLE IF NOT EXISTS MASTERNODES(id INTEGER PRIMARY KEY, ident TEXT, status TEXT,"
                     " protocol TEXT, payee TEXT, last_seen INTEGER, active_seconds INTEGER,"
                     " last_paid_time INTEGER, last_paid_block INTEGER, ip TEXT,"
-                    " tmt_active INTEGER, tmt_create_time TEXT, tmt_deactivation_time TEXT)")
-        cur.execute("CREATE INDEX IF NOT EXISTS IDX_MASTERNODES_TMT_ACTIVE ON MASTERNODES(tmt_active)")
+                    " cmt_active INTEGER, cmt_create_time TEXT, cmt_deactivation_time TEXT)")
+        cur.execute("CREATE INDEX IF NOT EXISTS IDX_MASTERNODES_CMT_ACTIVE ON MASTERNODES(cmt_active)")
         cur.execute("CREATE INDEX IF NOT EXISTS IDX_MASTERNODES_IDENT ON MASTERNODES(ident)")
 
         # create structures for proposals:
-        cur.execute("CREATE TABLE IF NOT EXISTS PROPOSALS(id INTEGER PRIMARY KEY, name TEXT, payment_start TEXT,"
-                    " payment_end TEXT, payment_amount REAL, yes_count INTEGER, absolute_yes_count INTEGER,"
-                    " no_count INTEGER, abstain_count INTEGER, creation_time TEXT, url TEXT, payment_address TEXT,"
-                    " type INTEGER, hash TEXT,  collateral_hash TEXT, f_blockchain_validity INTEGER,"
-                    " f_cached_valid INTEGER, f_cached_delete INTEGER, f_cached_funding INTEGER, "
-                    " f_cached_endorsed INTEGER, object_type INTEGER, is_valid_reason TEXT, tmt_active INTEGER, "
-                    " tmt_create_time TEXT, tmt_deactivation_time TEXT, tmt_voting_last_read_time INTEGER,"
+        cur.execute("CREATE TABLE IF NOT EXISTS PROPOSALS(id INTEGER PRIMARY KEY, name TEXT, url TEXT,"
+                    " hash TEXT, fee_hash TEXT, payment_start TEXT, payment_end TEXT, block_start INTEGER, block_end INTEGER,"
+                    " total_payment_count INTEGER, remaining_payment_count INTEGER, payment_address TEXT,"
+                    " ratio REAL, yes_count INTEGER, no_count INTEGER, absolute_yes_count INTEGER,"
+                    " abstain_count INTEGER, total_payment REAL, monthly_payment REAL, creation_time TEXT,"
+                    " is_established INTEGER, is_valid INTEGER, is_valid_reason TEXT, f_valid INTEGER,"
+                    " cmt_active INTEGER, cmt_create_time TEXT, cmt_deactivation_time TEXT,"
+                    " cmt_voting_last_read_time INTEGER,"
                     " ext_attributes_loaded INTEGER, owner TEXT, title TEXT)")
         cur.execute("CREATE INDEX IF NOT EXISTS IDX_PROPOSALS_HASH ON PROPOSALS(hash)")
 
-        # upgrade schema do v 0.9.11:
+        # upgrade schema to v 0.9.11:
         cur.execute("PRAGMA table_info(PROPOSALS)")
         columns = cur.fetchall()
         prop_owner_exists = False

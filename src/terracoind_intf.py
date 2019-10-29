@@ -527,7 +527,7 @@ class TerracoindInterface(WndUtils):
             db_correction_duration = 0.0
             logging.debug("Reading masternodes' data from DB")
             cur.execute("SELECT id, ident, status, protocol, payee, last_seen, active_seconds,"
-                        " last_paid_time, last_paid_block, IP from MASTERNODES where tmt_active=1")
+                        " last_paid_time, last_paid_block, IP from MASTERNODES where cmt_active=1")
             for row in cur.fetchall():
                 db_id = row[0]
                 ident = row[1]
@@ -742,11 +742,11 @@ class TerracoindInterface(WndUtils):
                 self.http_conn = httplib.HTTPSConnection(rpc_host, rpc_port, timeout=5, context=ssl._create_unverified_context())
             else:
                 self.rpc_url = 'http://'
-                self.http_conn = httplib.HTTPConnection(rpc_host, rpc_port, timeout=5)
+                self.http_conn = httplib.HTTPConnection(rpc_host, rpc_port, timeout=50)
 
             self.rpc_url += rpc_user + ':' + rpc_password + '@' + rpc_host + ':' + str(rpc_port)
             logging.debug('AuthServiceProxy begin: %s' % self.rpc_url)
-            self.proxy = AuthServiceProxy(self.rpc_url, timeout=5000, connection=self.http_conn)
+            self.proxy = AuthServiceProxy(self.rpc_url, timeout=10000, connection=self.http_conn)
             logging.debug('AuthServiceProxy end')
 
             try:
@@ -962,8 +962,8 @@ class TerracoindInterface(WndUtils):
 
                                 if self.db_intf.db_active:
                                     cur.execute("INSERT INTO MASTERNODES(ident, status, protocol, payee, last_seen,"
-                                            " active_seconds, last_paid_time, last_paid_block, ip, tmt_active,"
-                                            " tmt_create_time) "
+                                            " active_seconds, last_paid_time, last_paid_block, ip, cmt_active,"
+                                            " cmt_create_time) "
                                             "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                                             (mn.ident, mn.status, mn.protocol, mn.payee, mn.lastseen,
                                              mn.activeseconds, mn.lastpaidtime, mn.lastpaidblock, mn.ip, 1,
@@ -981,7 +981,7 @@ class TerracoindInterface(WndUtils):
 
                             if not mn.marker:
                                 if self.db_intf.db_active:
-                                    cur.execute("UPDATE MASTERNODES set tmt_active=0, tmt_deactivation_time=?"
+                                    cur.execute("UPDATE MASTERNODES set cmt_active=0, cmt_deactivation_time=?"
                                                 "WHERE ID=?",
                                                 (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                                 mn.db_id))

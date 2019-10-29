@@ -178,7 +178,7 @@ class AppConfig(object):
         logging.info('App started')
 
         # database (SQLITE) cache for caching bigger datasets:
-        self.db_cache_file_name = os.path.join(self.cache_dir, 'tmt_cache.db')
+        self.db_cache_file_name = os.path.join(self.cache_dir, 'cmt_cache.db')
 
         try:
             self.db_intf = DBCache(self.db_cache_file_name)

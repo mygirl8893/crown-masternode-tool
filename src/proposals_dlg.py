@@ -114,8 +114,6 @@ class Proposal(AttrsProtected):
         # voting_status:
         #   1: voting in progress, funding
         #   2: voting in progress, no funding
-        #   3: deadline passed, funding
-        #   4: deadline passed, no funding
         self.voting_status = None
 
         self.name_col_widget = None
@@ -191,7 +189,6 @@ class Proposal(AttrsProtected):
             payment_end = payment_end.timestamp()
         else:
             payment_end = None
-        funding_enabled = self.get_value('fCachedFunding')
 
         if payment_start and payment_end and isinstance(last_superblock_time, (int, float)) \
                 and isinstance(next_superblock_datetime, (int, float)):
@@ -200,7 +197,7 @@ class Proposal(AttrsProtected):
         else:
             self.voting_in_progress = False
         days = (payment_end - payment_start) / 86400
-        payment_months = floor(days / 28.8)
+        payment_months = floor(days / 30)
 
         # calculate number of payment-months that passed already fot the proposal
         if time.time() > payment_end:
@@ -215,9 +212,9 @@ class Proposal(AttrsProtected):
 
         self.set_value('months', payment_months)
         self.set_value('current_month', cur_month)
-        amt = self.get_value('payment_amount')
+        amt = self.get_value('monthly_payment')
         if amt is not None:
-            self.set_value('payment_amount_total', amt * payment_months)
+            self.set_value('monthly_payment_total', amt * payment_months)
 
         if not self.get_value('title'):
             # if title value is not set (it's an external attribute, from Terracoin Services) then copy value from the
@@ -238,14 +235,6 @@ class Proposal(AttrsProtected):
                 self.voting_status = 2  # needs additional votes
                 self.set_value('voting_status_caption', 'Needs additional %d votes' % (int(mns_count * 0.1) -
                                                                                        abs_yes_count))
-        else:
-            if funding_enabled:
-                self.voting_status = 3  # funded
-                self.set_value('voting_status_caption', 'Passed with funding')
-            else:
-                self.voting_status = 4  # not funded
-                self.set_value('voting_status_caption', 'Not funded')
-
 
 class VotingMasternode(AttrsProtected):
     def __init__(self, masternode, masternode_config):
@@ -276,12 +265,15 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             ProposalColumn('no', 'No', True),
             ProposalColumn('name', 'Name', False),
             ProposalColumn('title', 'Title', True),
+            ProposalColumn('url', 'URL', False),
+            ProposalColumn('hash', 'Hash', False),
+            ProposalColumn('fee_hash', 'Fee Hash', False),
             ProposalColumn('owner', 'Owner', True),
             ProposalColumn('voting_status_caption', 'Voting Status', True),
             ProposalColumn('active', 'Active', True),
-            ProposalColumn('payment_amount', 'Amount', True),
+            ProposalColumn('monthly_payment', 'Amount', True),
             ProposalColumn('months', 'Months', True),
-            ProposalColumn('payment_amount_total', 'Total Amount', True),  # payment_amount * months
+            ProposalColumn('total_payment', 'Total Amount', True),  # payment_amount * months
             ProposalColumn('current_month', 'Current Month', True),
             ProposalColumn('absolute_yes_count', 'Absolute Yes Count', True),
             ProposalColumn('yes_count', "Yes Count", True),
@@ -289,19 +281,14 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             ProposalColumn('abstain_count', 'Abstain Count', True),
             ProposalColumn('payment_start', 'Payment Start', True),
             ProposalColumn('payment_end', 'Payment End', True),
+            ProposalColumn('block_start', 'Block Start', True),
+            ProposalColumn('block_end', 'Block End', True),
             ProposalColumn('payment_address', 'Payment Address', False),
             ProposalColumn('creation_time', 'Creation Time', True),
-            ProposalColumn('url', 'URL', False),
-            ProposalColumn('type', 'Type', False),
-            ProposalColumn('hash', 'Hash', False),
-            ProposalColumn('collateral_hash', 'Collateral Hash', False),
-            ProposalColumn('fBlockchainValidity', 'fBlockchainValidity', False),
-            ProposalColumn('fCachedValid', 'fCachedValid', False),
-            ProposalColumn('fCachedDelete', 'fCachedDelete', False),
-            ProposalColumn('fCachedFunding', 'fCachedFunding', False),
-            ProposalColumn('fCachedEndorsed', 'fCachedEndorsed', False),
-            ProposalColumn('ObjectType', 'ObjectType', False),
-            ProposalColumn('IsValidReason', 'IsValidReason', False)
+            ProposalColumn('is_established', 'IsEstablished', False),
+            ProposalColumn('is_valid', 'IsValid', False),
+            ProposalColumn('IsValidReason', 'IsValidReason', False),
+            ProposalColumn('fValid', 'fValid', False)
         ]
         self.vote_columns_by_mn_ident = {}
         self.proposals = []
@@ -777,20 +764,8 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
     def read_proposals_from_network(self):
         """ Reads proposals from the Terracoin network. """
 
-        def find_prop_data(prop_data, level=1):
-            """ Find proposal dict inside a list extracted from DataString field. """
-            if isinstance(prop_data, list):
-                if len(prop_data) > 2:
-                    logging.warning('len(prop_data) > 2 [level: %d]. prop_data: %s' % (level, json.dumps(prop_data)))
-
-                if len(prop_data) >= 2 and prop_data[0] == 'proposal' and isinstance(prop_data[1], dict):
-                    return prop_data[1]
-                elif len(prop_data) >= 1 and isinstance(prop_data[0], list):
-                    return find_prop_data(prop_data[0], level+1)
-            return None
-
         def clean_float(data_in):
-            # deals with JSON field 'payment_amount' passed as different type for different propsoals  - when it's
+            # deals with JSON field 'monthly_payment' passed as different type for different propsoals  - when it's
             # a string, then comma (if exists) is replaced wit a dot, otherwise it's converted to a float
             if isinstance(data_in, str):
                 return float(data_in.replace(',', '.'))
@@ -802,7 +777,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         try:
 
             self.display_message('Reading proposals data, please wait...')
-            logging.info('Reading proposals from the Terracoin network.')
+            logging.info('Reading proposals from the Crown network.')
             begin_time = time.time()
             proposals_new = self.terracoind_intf.mnbudget("show")
             logging.info('Read proposals from network (mnbudget show). Count: %s, operation time: %s' %
@@ -822,12 +797,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                 try:
                     prop_raw = proposals_new[pro_key]
 
-                    prop_dstr = prop_raw.get("DataString")
-                    prop_data_json = json.loads(prop_dstr)
-                    prop_data = find_prop_data(prop_data_json)
-                    if prop_data is None:
-                        continue
-                    hash = prop_data['Hash']
+                    hash = prop_raw['Hash']
                     prop = self.proposals_by_hash.get(hash)
                     if not prop:
                         is_new = True
@@ -836,27 +806,26 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         is_new = False
                     prop.marker = True
 
-                    prop.set_value('name', prop_data['Name'])
-                    prop.set_value('payment_start', datetime.datetime.fromtimestamp(int(prop_data['start_epoch'])))
-                    prop.set_value('payment_end', datetime.datetime.fromtimestamp(int(prop_data['end_epoch'])))
-                    prop.set_value('payment_amount', clean_float(prop_data['payment_amount']))
-                    prop.set_value('yes_count', int(prop_raw['YesCount']))
-                    prop.set_value('absolute_yes_count', int(prop_raw['AbsoluteYesCount']))
-                    prop.set_value('no_count', int(prop_raw['NoCount']))
-                    prop.set_value('abstain_count', int(prop_raw['AbstainCount']))
-                    prop.set_value('creation_time', datetime.datetime.fromtimestamp(int(prop_raw["CreationTime"])))
-                    prop.set_value('url', prop_data['url'])
-                    prop.set_value('payment_address', prop_data["payment_address"])
-                    prop.set_value('type', prop_data['type'])
+                    prop.set_value('name', prop_raw['Name'])
+                    prop.set_value('url', prop_raw['URL'])
                     prop.set_value('hash', hash)
-                    prop.set_value('collateral_hash', prop_raw['CollateralHash'])
-                    prop.set_value('fBlockchainValidity', prop_raw['fBlockchainValidity'])
-                    prop.set_value('fCachedValid', prop_raw['fCachedValid'])
-                    prop.set_value('fCachedDelete', prop_raw['fCachedDelete'])
-                    prop.set_value('fCachedFunding', prop_raw['fCachedFunding'])
-                    prop.set_value('fCachedEndorsed', prop_raw['fCachedEndorsed'])
-                    prop.set_value('ObjectType', prop_raw['ObjectType'])
+                    prop.set_value('fee_hash', prop_raw['FeeHash'])
+                    prop.set_value('block_start', int(prop_raw['BlockStart']))
+                    prop.set_value('block_end', int(prop_raw['BlockEnd']))
+                    prop.set_value('total_payment_count', int(prop_raw['TotalPaymentCount']))
+                    prop.set_value('remaining_payment_count', int(prop_raw['RemainingPaymentCount']))
+                    prop.set_value('payment_address', prop_raw["PaymentAddress"])
+                    prop.set_value('ratio', clean_float(prop_raw['Ratio']))
+                    prop.set_value('yes_count', int(prop_raw['Yeas']))
+                    prop.set_value('no_count', int(prop_raw['NoCount']))
+                    prop.set_value('absolute_yes_count', int(prop_raw['Yeas']) - int(prop_raw['Nays']))
+                    prop.set_value('abstain_count', int(prop_raw['Abstains']))
+                    prop.set_value('total_amount', clean_float(prop_raw['TotalPayment']))
+                    prop.set_value('monthly_payment', clean_float(prop_raw['MonthlyPayment']))
+                    prop.set_value('fIsEstablished', prop_raw['IsEstablished'])
+                    prop.set_value('fIsValid', prop_raw['IsValid'])
                     prop.set_value('IsValidReason', prop_raw['IsValidReason'])
+                    prop.set_value('fValid', prop_raw['fValid'])
                     prop.apply_values(self.masternodes, self.last_superblock_time, self.next_superblock_time)
                     if is_new:
                         self.proposals.append(prop)
@@ -878,48 +847,47 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                             if prop.marker:
                                 if not prop.db_id:
                                     # first, check if there is a proposal with the same hash in the database
-                                    # terracoind sometimes does not return some proposals, so they are deactivated id the db
+                                    # terracoind sometimes does not return some proposals, so they are deactivated in the db
                                     hash = prop.get_value('hash')
                                     cur.execute('SELECT id from PROPOSALS where hash=?', (hash,))
                                     row = cur.fetchone()
                                     if row:
                                         prop.db_id = row[0]
                                         prop.modified = True
-                                        cur.execute('UPDATE PROPOSALS set tmt_active=1, tmt_deactivation_time=NULL '
+                                        cur.execute('UPDATE PROPOSALS set cmt_active=1, cmt_deactivation_time=NULL '
                                                     'WHERE id=?', (row[0],))
                                         logging.info('Proposal "%s" (db_id: %d) exists int the DB. Re-activating.' %
                                                      (hash, row[0]))
 
                                 if not prop.db_id:
                                     logging.info('Adding a new proposal to DB. Hash: ' + prop.get_value('hash'))
-                                    cur.execute("INSERT INTO PROPOSALS (name, payment_start, payment_end, payment_amount,"
-                                                " yes_count, absolute_yes_count, no_count, abstain_count, creation_time,"
-                                                " url, payment_address, type, hash, collateral_hash, f_blockchain_validity,"
-                                                " f_cached_valid, f_cached_delete, f_cached_funding, f_cached_endorsed, "
-                                                " object_type, is_valid_reason, tmt_active, tmt_create_time, "
-                                                " tmt_deactivation_time, tmt_voting_last_read_time)"
-                                                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
+                                    cur.execute("INSERT INTO PROPOSALS (name, url, hash, fee_hash, block_start,"
+                                                " block_end, total_payment_count, remaining_payment_count,"
+                                                " payment_address, ratio, yes_count, no_count, absolute_yes_count,"
+                                                " abstain_count, total_payment, monthly_payment, is_established,"
+                                                " is_valid, is_valid_reason, f_valid, cmt_active, cmt_create_time,"
+                                                "cmt_deactiviation_time, cmt_voting_last_read_time"
+                                                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
                                                 (prop.get_value('name'),
-                                                 prop.get_value('payment_start').strftime('%Y-%m-%d %H:%M:%S'),
-                                                 prop.get_value('payment_end').strftime('%Y-%m-%d %H:%M:%S'),
-                                                 prop.get_value('payment_amount'),
-                                                 prop.get_value('yes_count'),
-                                                 prop.get_value('absolute_yes_count'),
-                                                 prop.get_value('no_count'),
-                                                 prop.get_value('abstain_count'),
-                                                 prop.get_value('creation_time').strftime('%Y-%m-%d %H:%M:%S'),
                                                  prop.get_value('url'),
-                                                 prop.get_value('payment_address'),
-                                                 prop.get_value('type'),
                                                  prop.get_value('hash'),
-                                                 prop.get_value('collateral_hash'),
-                                                 prop.get_value('fBlockchainValidity'),
-                                                 prop.get_value('fCachedValid'),
-                                                 prop.get_value('fCachedDelete'),
-                                                 prop.get_value('fCachedFunding'),
-                                                 prop.get_value('fCachedEndorsed'),
-                                                 prop.get_value('ObjectType'),
-                                                 prop.get_value('IsValidReason'),
+                                                 prop.get_value('fee_hash'),
+                                                 prop.get_value('block_start'),
+                                                 prop.get_value('block_end'),
+                                                 prop.get_value('total_payment_count'),
+                                                 prop.get_value('remaining_payment_count'),
+                                                 prop.get_value('payment_address'),
+                                                 prop.get_value('ratio'),
+                                                 prop.get_value('yes_count'),
+                                                 prop.get_value('no_count'),
+                                                 prop.get_value('absolute_yes_count'),
+                                                 prop.get_value('abstain_count'),
+                                                 prop.get_value('total_payment'),
+                                                 prop.get_value('monthly_payment'),
+                                                 prop.get_value('is_established'),
+                                                 prop.get_value('is_valid'),
+                                                 prop.get_value('is_valid_reason'),
+                                                 prop.get_value('f_valid'),
                                                  1,
                                                  datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                                  None))
@@ -930,34 +898,33 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                     if prop.modified:
                                         logging.debug('Updating proposal in the DB. Hash: %s, DB id: %d' %
                                                       (prop.get_value('hash'), prop.db_id) )
-                                        cur.execute("UPDATE PROPOSALS set name=?, payment_start=?, payment_end=?, "
-                                                    "payment_amount=?, yes_count=?, absolute_yes_count=?, no_count=?, "
-                                                    "abstain_count=?, creation_time=?, url=?, payment_address=?, type=?,"
-                                                    "hash=?, collateral_hash=?, f_blockchain_validity=?, f_cached_valid=?,"
-                                                    "f_cached_delete=?, f_cached_funding=?, f_cached_endorsed=?, object_type=?,"
-                                                    "is_valid_reason=? WHERE id=?",
+                                        cur.execute("UPDATE PROPOSALS set name=?, url=?, hash=?, fee_hash=?, "
+                                                    "block_start=?, block_end=?, total_payment_count=?, "
+                                                    "remaining_payment_count=?, payment_address=?, ratio=?, "
+                                                    "yes_count=?, no_count=?, absolute_yes_count=?, abstain_count=?, "
+                                                    "total_payment=?, monthly_payment=?, is_established=?, "
+                                                    "is_valid=?, is_valid_reason=?, f_valid=? WHERE id=?",
                                                     (
                                                         prop.get_value('name'),
-                                                        prop.get_value('payment_start').strftime('%Y-%m-%d %H:%M:%S'),
-                                                        prop.get_value('payment_end').strftime('%Y-%m-%d %H:%M:%S'),
-                                                        prop.get_value('payment_amount'),
-                                                        prop.get_value('yes_count'),
-                                                        prop.get_value('absolute_yes_count'),
-                                                        prop.get_value('no_count'),
-                                                        prop.get_value('abstain_count'),
-                                                        prop.get_value('creation_time').strftime('%Y-%m-%d %H:%M:%S'),
                                                         prop.get_value('url'),
-                                                        prop.get_value('payment_address'),
-                                                        prop.get_value('type'),
                                                         prop.get_value('hash'),
-                                                        prop.get_value('collateral_hash'),
-                                                        prop.get_value('fBlockchainValidity'),
-                                                        prop.get_value('fCachedValid'),
-                                                        prop.get_value('fCachedDelete'),
-                                                        prop.get_value('fCachedFunding'),
-                                                        prop.get_value('fCachedEndorsed'),
-                                                        prop.get_value('ObjectType'),
-                                                        prop.get_value('IsValidReason'),
+                                                        prop.get_value('fee_hash'),
+                                                        prop.get_value('block_start'),
+                                                        prop.get_value('block_end'),
+                                                        prop.get_value('total_payment_count'),
+                                                        prop.get_value('remaining_payment_count'),
+                                                        prop.get_value('payment_address'),
+                                                        prop.get_value('ratio'),
+                                                        prop.get_value('yes_count'),
+                                                        prop.get_value('no_count'),
+                                                        prop.get_value('absolute_yes_count'),
+                                                        prop.get_value('abstain_count'),
+                                                        prop.get_value('total_payment'),
+                                                        prop.get_value('monthly_payment'),
+                                                        prop.get_value('is_established'),
+                                                        prop.get_value('is_valid'),
+                                                        prop.get_value('is_valid_reason'),
+                                                        prop.get_value('f_valid'),
                                                         prop.db_id
                                                     ))
 
@@ -972,7 +939,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                             if not prop.marker:
                                 logging.info('Deactivating proposal in the cache. Hash: %s, DB id: %s' %
                                               (prop.get_value('hash'), str(prop.db_id)))
-                                cur.execute("UPDATE PROPOSALS set tmt_active=0, tmt_deactivation_time=? WHERE id=?",
+                                cur.execute("UPDATE PROPOSALS set cmt_active=0, cmt_deactivation_time=? WHERE id=?",
                                             (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), prop.db_id))
 
                                 self.proposals_by_hash.pop(prop.get_value('hash'), 0)
@@ -1138,13 +1105,12 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                             logging.info("Reading proposals' data from DB")
                             tm_begin = time.time()
                             cur.execute(
-                                "SELECT name, payment_start, payment_end, payment_amount,"
+                                "SELECT name, payment_start, payment_end, monthly_payment,"
                                 " yes_count, absolute_yes_count, no_count, abstain_count, creation_time,"
-                                " url, payment_address, type, hash, collateral_hash, f_blockchain_validity,"
-                                " f_cached_valid, f_cached_delete, f_cached_funding, f_cached_endorsed, object_type,"
-                                " is_valid_reason, tmt_active, tmt_create_time, tmt_deactivation_time, id,"
-                                " tmt_voting_last_read_time, owner, title, ext_attributes_loaded "
-                                "FROM PROPOSALS where tmt_active=1"
+                                " url, payment_address, hash, fee_hash,"
+                                " is_valid_reason, cmt_active, cmt_create_time, cmt_deactivation_time, id,"
+                                " cmt_voting_last_read_time, owner, title, ext_attributes_loaded "
+                                "FROM PROPOSALS where cmt_active=1"
                             )
 
                             data_modified = False
@@ -1156,10 +1122,10 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                 # deactivated due to some problems with previuos executions
                                 # select all proposals with the same hash and move their votes to the current one
                                 cur_fix.execute('select id from PROPOSALS where hash=? and id<>?',
-                                                (row[12], row[24]))
+                                                (row[12], row[19]))
                                 for fix_row in cur_fix.fetchall():
                                     cur_fix_upd.execute('UPDATE VOTING_RESULTS set proposal_id=? where proposal_id=?',
-                                                        (row[24], fix_row[0]))
+                                                        (row[19], fix_row[0]))
                                     cur_fix_upd.execute('DELETE FROM PROPOSALS WHERE id=?', (fix_row[0],))
                                     data_modified = True
                                     logging.warning('Deleted duplicated proposal from DB. ID: %s, HASH: %s' %
@@ -1169,7 +1135,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                 prop.set_value('name', row[0])
                                 prop.set_value('payment_start', datetime.datetime.strptime(row[1], '%Y-%m-%d %H:%M:%S'))
                                 prop.set_value('payment_end',  datetime.datetime.strptime(row[2], '%Y-%m-%d %H:%M:%S'))
-                                prop.set_value('payment_amount', row[3])
+                                prop.set_value('monthly_payment', row[3])
                                 prop.set_value('yes_count', row[4])
                                 prop.set_value('absolute_yes_count', row[5])
                                 prop.set_value('no_count', row[6])
@@ -1177,21 +1143,15 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                 prop.set_value('creation_time', datetime.datetime.strptime(row[8], '%Y-%m-%d %H:%M:%S'))
                                 prop.set_value('url', row[9])
                                 prop.set_value('payment_address', row[10])
-                                prop.set_value('type', row[11])
                                 prop.set_value('hash', row[12])
-                                prop.set_value('collateral_hash', row[13])
-                                prop.set_value('fBlockchainValidity', True if row[14] else False)
-                                prop.set_value('fCachedValid', True if row[15] else False)
-                                prop.set_value('fCachedDelete', True if row[16] else False)
-                                prop.set_value('fCachedFunding', True if row[17] else False)
-                                prop.set_value('fCachedEndorsed', True if row[18] else False)
-                                prop.set_value('ObjectType', row[19])
-                                prop.set_value('IsValidReason', row[20])
-                                prop.db_id = row[24]
-                                prop.voting_last_read_time = row[25]
-                                prop.set_value('owner', row[26])
-                                prop.set_value('title', row[27])
-                                prop.ext_attributes_loaded = True if row[28] else False
+                                prop.set_value('fee_hash', row[13])
+                                prop.set_value('fCachedFunding', True if row[14] else False)
+                                prop.set_value('IsValidReason', row[15])
+                                prop.db_id = row[19]
+                                prop.voting_last_read_time = row[20]
+                                prop.set_value('owner', row[21])
+                                prop.set_value('title', row[22])
+                                prop.ext_attributes_loaded = True if row[23] else False
                                 prop.apply_values(self.masternodes, self.last_superblock_time,
                                                   self.next_superblock_time)
                                 self.proposals.append(prop)
@@ -1400,7 +1360,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     if mn:
                         cur.execute("SELECT proposal_id, voting_time, voting_result "
                                     "FROM VOTING_RESULTS vr WHERE masternode_ident=? AND EXISTS "
-                                    "(SELECT 1 FROM PROPOSALS p where p.id=vr.proposal_id and p.tmt_active=1)",
+                                    "(SELECT 1 FROM PROPOSALS p where p.id=vr.proposal_id and p.cmt_active=1)",
                                     (mn_ident,))
                         for row in cur.fetchall():
                             if self.finishing:
@@ -1573,7 +1533,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
 
                             prop.voting_last_read_time = time.time()
                             tm_begin = time.time()
-                            cur.execute("UPDATE PROPOSALS set tmt_voting_last_read_time=? where id=?",
+                            cur.execute("UPDATE PROPOSALS set cmt_voting_last_read_time=? where id=?",
                                         (int(time.time()), prop.db_id))
                             db_modified = True
                             db_oper_duration += (time.time() - tm_begin)
@@ -1822,7 +1782,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     payment_url = self.main_wnd.config.block_explorer_addr.replace('%ADDRESS%', payment_addr)
                     payment_addr = '<a href="%s">%s</a>' % (payment_url, payment_addr)
 
-                col_hash = self.current_proposal.get_value('collateral_hash')
+                col_hash = self.current_proposal.get_value('fee_hash')
                 if self.main_wnd.config.block_explorer_tx:
                     col_url = self.main_wnd.config.block_explorer_tx.replace('%TXID%', col_hash)
                     col_hash = '<a href="%s">%s</a>' % (col_url, col_hash)
@@ -1933,9 +1893,9 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         str(prop.get_value('yes_count')),
                         str(prop.get_value('no_count')),
                         str(prop.get_value('abstain_count')),
-                        self.main_wnd.config.to_string(prop.get_value('payment_amount')),
+                        self.main_wnd.config.to_string(prop.get_value('monthly_payment')),
                         months_str,
-                        self.main_wnd.config.to_string(prop.get_value('payment_amount_total')),
+                        self.main_wnd.config.to_string(prop.get_value('monthly_payment_total')),
                         get_date_str(prop.get_value('payment_start')),
                         get_date_str(prop.get_value('payment_end')),
                         payment_addr,
@@ -2482,7 +2442,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         # move back the 'last read' time to force reading vote data from the network
                         # next time and save it to the db
                         cur = self.db_intf.get_cursor()
-                        cur.execute("UPDATE PROPOSALS set tmt_voting_last_read_time=? where id=?",
+                        cur.execute("UPDATE PROPOSALS set cmt_voting_last_read_time=? where id=?",
                                     (int(time.time()) - VOTING_RELOAD_TIME, self.current_proposal.db_id))
                     except Exception:
                         logging.exception('Exception while saving configuration data.')
@@ -2779,7 +2739,7 @@ class ProposalsModel(QAbstractTableModel):
                                 return QCOLOR_ABSTAIN
 
                     elif role == Qt.TextAlignmentRole:
-                        if col.name in ('payment_amount', 'payment_amount_total', 'absolute_yes_count', 'yes_count',
+                        if col.name in ('monthly_payment', 'total_payment', 'absolute_yes_count', 'yes_count',
                                         'no_count', 'abstain_count', 'months', 'current_month'):
                             return Qt.AlignRight
 
