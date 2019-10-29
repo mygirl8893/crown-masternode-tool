@@ -25,7 +25,7 @@ from wnd_utils import WndUtils
 
 APP_NAME_SHORT = 'CrownMasternodeTool'
 APP_NAME_LONG = 'Crown Masternode Tool'
-PROJECT_URL = 'https://github.com/TheSin-/terracoin-masternode-tool'
+PROJECT_URL = 'https://github.com/walkjivefly/crown-masternode-tool'
 FEE_SAT_PER_BYTE = 11
 MIN_TX_FEE = 2000
 APP_CFG_CUR_VERSION = 2  # current version of configuration file format
@@ -59,20 +59,20 @@ class AppConfig(object):
         self.date_format = self.get_default_locale().dateFormat(QLocale.ShortFormat)
         self.date_time_format = self.get_default_locale().dateTimeFormat(QLocale.ShortFormat)
 
-        # List of Terracoin network configurations. Multiple conn configs advantage is to give the possibility to use
+        # List of Crown network configurations. Multiple conn configs advantage is to give the possibility to use
         # another config if particular one is not functioning (when using "public" RPC service, it could be node's
         # maintanance)
-        self.terracoin_net_configs = []
+        self.crown_net_configs = []
 
         # to distribute the load evenly over "public" RPC services, we choose radom connection (from enabled ones)
-        # if it is set to False, connections will be used accoording to its order in terracoin_net_configs list
-        self.random_terracoin_net_config = True
+        # if it is set to False, connections will be used accoording to its order in crown_net_configs list
+        self.random_crown_net_config = True
 
-        # list of all enabled terracoind configurations (TerracoinNetworkConnectionCfg) - they will be used accourding to
+        # list of all enabled crownd configurations (CrownNetworkConnectionCfg) - they will be used accourding to
         # the order in list
-        self.active_terracoin_net_configs = []
+        self.active_crown_net_configs = []
 
-        # list of misbehaving terracoin network configurations - they will have the lowest priority during next
+        # list of misbehaving crown network configurations - they will have the lowest priority during next
         # connections
         self.defective_net_configs = []
 
@@ -83,7 +83,7 @@ class AppConfig(object):
 
         self.block_explorer_tx = 'https://insight-01.crownplatform.com/tx/%TXID%'
         self.block_explorer_addr = 'https://insight-01.crownplatform.com/%ADDRESS%'
-        self.terracoin_services_proposal_api = 'https://services.terracoin.io/api/v1/proposal?hash=%HASH%'
+        self.crown_services_proposal_api = 'https://services.crown.io/api/v1/proposal?hash=%HASH%'
 
         self.check_for_updates = True
         self.backup_config_file = True
@@ -160,7 +160,7 @@ class AppConfig(object):
 
         # setup logging
         self.log_dir = os.path.join(app_user_dir, 'logs')
-        self.log_file = os.path.join(self.log_dir, 'tmt.log')
+        self.log_file = os.path.join(self.log_dir, 'cmt.log')
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
 
@@ -210,13 +210,13 @@ class AppConfig(object):
         self.db_intf.close()
 
     def copy_from(self, src_config):
-        self.terracoin_net_configs = copy.deepcopy(src_config.terracoin_net_configs)
-        self.random_terracoin_net_config = src_config.random_terracoin_net_config
+        self.crown_net_configs = copy.deepcopy(src_config.crown_net_configs)
+        self.random_crown_net_config = src_config.random_crown_net_config
         self.hw_type = src_config.hw_type
         self.hw_keepkey_psw_encoding = src_config.hw_keepkey_psw_encoding
         self.block_explorer_tx = src_config.block_explorer_tx
         self.block_explorer_addr = src_config.block_explorer_addr
-        self.terracoin_services_proposal_api = src_config.terracoin_services_proposal_api
+        self.crown_services_proposal_api = src_config.crown_services_proposal_api
         self.check_for_updates = src_config.check_for_updates
         self.backup_config_file = src_config.backup_config_file
         self.read_proposals_external_attributes = src_config.read_proposals_external_attributes
@@ -288,7 +288,7 @@ class AppConfig(object):
 
                 if ini_version == 1:
                     # read network config from old file format
-                    terracoind_connect_method = config.get(section, 'terracoind_connect_method', fallback='rpc')
+                    crownd_connect_method = config.get(section, 'crownd_connect_method', fallback='rpc')
                     rpc_user = config.get(section, 'rpc_user', fallback='')
                     rpc_password = config.get(section, 'rpc_password', fallback='')
                     rpc_ip = config.get(section, 'rpc_ip', fallback='')
@@ -301,13 +301,13 @@ class AppConfig(object):
                     ros_rpc_username = config.get(section, 'ros_rpc_username', fallback='')
                     ros_rpc_password = config.get(section, 'ros_rpc_password', fallback='')
 
-                    # convert terracoin network config from config version 1
+                    # convert crown network config from config version 1
                     if ros_ssh_host and ros_ssh_port and ros_ssh_username and ros_rpc_bind_ip and \
                        ros_rpc_bind_port and ros_rpc_username and ros_rpc_password:
 
                         # import RPC over SSH configuration
-                        cfg = TerracoinNetworkConnectionCfg('rpc')
-                        cfg.enabled = True if terracoind_connect_method == 'rpc_ssh' else False
+                        cfg = CrownNetworkConnectionCfg('rpc')
+                        cfg.enabled = True if crownd_connect_method == 'rpc_ssh' else False
                         cfg.host = ros_rpc_bind_ip
                         cfg.port = ros_rpc_bind_port
                         cfg.use_ssl = False
@@ -317,19 +317,19 @@ class AppConfig(object):
                         cfg.ssh_conn_cfg.host = ros_ssh_host
                         cfg.ssh_conn_cfg.port = ros_ssh_port
                         cfg.ssh_conn_cfg.username = ros_ssh_username
-                        self.terracoin_net_configs.append(cfg)
+                        self.crown_net_configs.append(cfg)
                         was_default_ssh_in_ini_v1 = cfg.enabled
 
                     if rpc_user and rpc_password and rpc_ip and rpc_port:
-                        cfg = TerracoinNetworkConnectionCfg('rpc')
-                        cfg.enabled = True if terracoind_connect_method == 'rpc' else False
+                        cfg = CrownNetworkConnectionCfg('rpc')
+                        cfg.enabled = True if crownd_connect_method == 'rpc' else False
                         cfg.host = rpc_ip
                         cfg.port = rpc_port
                         cfg.use_ssl = False
                         cfg.username = rpc_user
                         cfg.password = rpc_password
                         cfg.use_ssh_tunnel = False
-                        self.terracoin_net_configs.append(cfg)
+                        self.crown_net_configs.append(cfg)
                         was_default_direct_localhost_in_ini_v1 = cfg.enabled and cfg.host == '127.0.0.1'
                         ini_v1_localhost_rpc_cfg = cfg
                         if correct_public_nodes:
@@ -357,7 +357,7 @@ class AppConfig(object):
                                     self.hw_keepkey_psw_encoding)
                     self.hw_keepkey_psw_encoding = 'NFC'
 
-                self.random_terracoin_net_config = self.value_to_bool(config.get(section, 'random_terracoin_net_config',
+                self.random_crown_net_config = self.value_to_bool(config.get(section, 'random_crown_net_config',
                                                                             fallback='1'))
                 self.check_for_updates = self.value_to_bool(config.get(section, 'check_for_updates', fallback='1'))
                 self.backup_config_file = self.value_to_bool(config.get(section, 'backup_config_file', fallback='1'))
@@ -387,7 +387,7 @@ class AppConfig(object):
                         self.masternodes.append(mn)
                     elif re.match('NETCFG\d', section):
                         # read network configuration from new config file format
-                        cfg = TerracoinNetworkConnectionCfg('rpc')
+                        cfg = CrownNetworkConnectionCfg('rpc')
                         cfg.enabled = self.value_to_bool(config.get(section, 'enabled', fallback='1'))
                         cfg.host = config.get(section, 'host', fallback='')
                         cfg.port = config.get(section, 'port', fallback='')
@@ -398,7 +398,7 @@ class AppConfig(object):
                         cfg.ssh_conn_cfg.host = config.get(section, 'ssh_host', fallback='')
                         cfg.ssh_conn_cfg.port = config.get(section, 'ssh_port', fallback='')
                         cfg.ssh_conn_cfg.username = config.get(section, 'ssh_username', fallback='')
-                        self.terracoin_net_configs.append(cfg)
+                        self.crown_net_configs.append(cfg)
                         if correct_public_nodes:
                             if cfg.host.lower() == 'alice.dash-dmt.eu':
                                 cfg.host = 'alice.dash-masternode-tool.org'
@@ -412,10 +412,10 @@ class AppConfig(object):
                 logging.exception('Read configuration error:')
 
         try:
-            cfgs = self.decode_connections(default_config.terracoind_default_connections)
+            cfgs = self.decode_connections(default_config.crownd_default_connections)
             if cfgs:
                 # force import default connections if there is no any in the configuration
-                force_import = (len(self.terracoin_net_configs) == 0) or \
+                force_import = (len(self.crown_net_configs) == 0) or \
                                (self.app_last_version == '0.9.15') # v0.9.15 imported the connections but not saved the cfg
 
                 added, updated = self.import_connections(cfgs, force_import=force_import)
@@ -428,7 +428,7 @@ class AppConfig(object):
                         for new in added:
                             new.enabled = False
                     elif was_default_direct_localhost_in_ini_v1:
-                        # in the old version user used local terracoin daemon;
+                        # in the old version user used local crown daemon;
                         # we assume, that user would prefer "public" connections over local, troublesome node
                         # deactivate user's old cfg
                         ini_v1_localhost_rpc_cfg.enabled = False
@@ -461,7 +461,7 @@ class AppConfig(object):
         config.set(section, 'hw_type', self.hw_type)
         config.set(section, 'hw_keepkey_psw_encoding', self.hw_keepkey_psw_encoding)
         config.set(section, 'bip32_base_path', self.last_bip32_base_path)
-        config.set(section, 'random_terracoin_net_config', '1' if self.random_terracoin_net_config else '0')
+        config.set(section, 'random_crown_net_config', '1' if self.random_crown_net_config else '0')
         config.set(section, 'check_for_updates', '1' if self.check_for_updates else '0')
         config.set(section, 'backup_config_file', '1' if self.backup_config_file else '0')
         config.set(section, 'dont_use_file_dialogs', '1' if self.dont_use_file_dialogs else '0')
@@ -486,8 +486,8 @@ class AppConfig(object):
             config.set(section, 'protocol_version', str(mn.protocol_version))
             mn.modified = False
 
-        # save terracoin network connections
-        for idx, cfg in enumerate(self.terracoin_net_configs):
+        # save crown network connections
+        for idx, cfg in enumerate(self.crown_net_configs):
             section = 'NETCFG' + str(idx+1)
             config.add_section(section)
             config.set(section, 'method', cfg.method)
@@ -549,38 +549,38 @@ class AppConfig(object):
             self.log_level_str = new_log_level_str
 
     def is_config_complete(self):
-        for cfg in self.terracoin_net_configs:
+        for cfg in self.crown_net_configs:
             if cfg.enabled:
                 return True
         return False
 
     def prepare_conn_list(self):
         """
-        Prepare list of enabled connections for connecting to terracoin network. 
-        :return: list of TerracoinNetworkConnectionCfg objects order randomly (random_terracoin_net_config == True) or according 
+        Prepare list of enabled connections for connecting to crown network. 
+        :return: list of CrownNetworkConnectionCfg objects order randomly (random_crown_net_config == True) or according 
             to order in configuration
         """
         tmp_list = []
-        for cfg in self.terracoin_net_configs:
+        for cfg in self.crown_net_configs:
             if cfg.enabled:
                 tmp_list.append(cfg)
-        if self.random_terracoin_net_config:
+        if self.random_crown_net_config:
             ordered_list = []
             while len(tmp_list):
                 idx = randint(0, len(tmp_list)-1)
                 ordered_list.append(tmp_list[idx])
                 del tmp_list[idx]
-            self.active_terracoin_net_configs = ordered_list
+            self.active_crown_net_configs = ordered_list
         else:
-            self.active_terracoin_net_configs = tmp_list
+            self.active_crown_net_configs = tmp_list
 
     def get_ordered_conn_list(self):
-        if not self.active_terracoin_net_configs:
+        if not self.active_crown_net_configs:
             self.prepare_conn_list()
-        return self.active_terracoin_net_configs
+        return self.active_crown_net_configs
 
     def conn_config_changed(self):
-        self.active_terracoin_net_configs = []
+        self.active_crown_net_configs = []
         self.defective_net_configs = []
 
     def conn_cfg_failure(self, cfg):
@@ -594,7 +594,7 @@ class AppConfig(object):
 
     def decode_connections(self, raw_conn_list):
         """
-        Decodes list of dicts describing connection to a list of TerracoinNetworkConnectionCfg objects.
+        Decodes list of dicts describing connection to a list of CrownNetworkConnectionCfg objects.
         :param raw_conn_list: 
         :return: list of connection objects
         """
@@ -603,7 +603,7 @@ class AppConfig(object):
             try:
                 if 'use_ssh_tunnel' in conn_raw and 'host' in conn_raw and 'port' in conn_raw and \
                    'username' in conn_raw and 'password' in conn_raw and 'use_ssl' in conn_raw:
-                    cfg = TerracoinNetworkConnectionCfg('rpc')
+                    cfg = CrownNetworkConnectionCfg('rpc')
                     cfg.use_ssh_tunnel = conn_raw['use_ssh_tunnel']
                     cfg.host = conn_raw['host']
                     cfg.port = conn_raw['port']
@@ -639,7 +639,7 @@ class AppConfig(object):
                 'ssh_user': str non-mandatory
             },
         ]
-        :return: list of TerracoinNetworkConnectionCfg objects or None if there was an error while importing
+        :return: list of CrownNetworkConnectionCfg objects or None if there was an error while importing
         """
         try:
             conns_json = conns_json.strip()
@@ -677,7 +677,7 @@ class AppConfig(object):
         Imports connections from a list. Used at the app's start to process default connections and/or from
           a configuration dialog, when user pastes from a clipboard a string, describing connections he 
           wants to add to the configuration. The latter feature is used for a convenience.
-        :param in_conns: list of TerracoinNetworkConnectionCfg objects.
+        :param in_conns: list of CrownNetworkConnectionCfg objects.
         :returns: tuple (list_of_added_connections, list_of_updated_connections)
         """
 
@@ -691,7 +691,7 @@ class AppConfig(object):
                 if not conn:
                     if force_import or not cache.get_value('imported_default_conn_' + nc.get_conn_id(), False, bool):
                         # this new connection was not automatically imported before
-                        self.terracoin_net_configs.append(nc)
+                        self.crown_net_configs.append(nc)
                         added_conns.append(nc)
                         cache.set_value('imported_default_conn_' + nc.get_conn_id(), True)
                 elif not conn.identical(nc) and force_import:
@@ -701,11 +701,11 @@ class AppConfig(object):
 
     def get_conn_cfg_by_id(self, id):
         """
-        Returns TerracoinNetworkConnectionCfg object by its identifier or None if does not exists.
+        Returns CrownNetworkConnectionCfg object by its identifier or None if does not exists.
         :param id: Identifier of the sought connection.
-        :return: TerracoinNetworkConnectionCfg object or None if does not exists.
+        :return: CrownNetworkConnectionCfg object or None if does not exists.
         """
-        for conn in self.terracoin_net_configs:
+        for conn in self.crown_net_configs:
             if conn.get_conn_id() == id:
                 return conn
         return None
@@ -796,7 +796,7 @@ class SSHConnectionCfg(object):
         self.__password = password
 
 
-class TerracoinNetworkConnectionCfg(object):
+class CrownNetworkConnectionCfg(object):
     def __init__(self, method):
         self.__enabled = True
         self.method = method    # now only 'rpc'
@@ -834,7 +834,7 @@ class TerracoinNetworkConnectionCfg(object):
     def identical(self, cfg2):
         """
         Checks if connection object passed as an argument has exactly the same values as self object.
-        :param cfg2: TerracoinNetworkConnectionCfg object to compare
+        :param cfg2: CrownNetworkConnectionCfg object to compare
         :return: True, if objects have identical attributes.
         """
         return self.host == cfg2.host and self.port == cfg2.port and self.username == cfg2.username and \
@@ -863,7 +863,7 @@ class TerracoinNetworkConnectionCfg(object):
     def is_http_proxy(self):
         """
         Returns if current config is a http proxy. Method is not very brilliant for now: we assume, that 
-        proxy uses SSL while normal, "local" terracoind does not. 
+        proxy uses SSL while normal, "local" crownd does not. 
         """
         if self.__use_ssl:
             return True

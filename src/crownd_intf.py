@@ -135,13 +135,13 @@ class UnknownError(Exception):
     pass
 
 
-class TerracoindConnectionError(Exception):
+class CrowndConnectionError(Exception):
     def __init__(self, org_exception):
         Exception.__init__(org_exception)
         self.org_exception = org_exception
 
 
-class TerracoindSSH(object):
+class CrowndSSH(object):
     def __init__(self, host, port, username, on_connection_broken_callback=None):
         self.host = host
         self.port = port
@@ -258,19 +258,19 @@ class TerracoindSSH(object):
         else:
             raise Exception('SSH not connected')
 
-    def find_terracoind_config(self):
+    def find_crownd_config(self):
         """
-        Try to read configuration of remote terracoin daemon. In particular we need parameters concering rpc
+        Try to read configuration of remote crown daemon. In particular we need parameters concering rpc
         configuration.
-        :return: tuple (terracoind_running, terracoind_config_found, terracoind config file contents as dict)
+        :return: tuple (crownd_running, crownd_config_found, crownd config file contents as dict)
                 or error string in error occured
         """
-        terracoind_running = False
-        terracoind_config_found = False
+        crownd_running = False
+        crownd_config_found = False
         if not self.ssh:
             raise Exception('SSH session not ready')
         try:
-            # find terracoind process id if running
+            # find crownd process id if running
             try:
                 pids = self.remote_command('ps -C "crownd" -o pid')
             except UnknownError:
@@ -284,41 +284,41 @@ class TerracoindSSH(object):
                 pid = pids[1]
             config = {}
             if pid:
-                terracoind_running = True
-                # using terracoind pid find its executable path and then .terracoincore directory and finally terracoin.conf file
+                crownd_running = True
+                # using crownd pid find its executable path and then .crowncore directory and finally crown.conf file
                 executables = self.remote_command('ls -l /proc/' + str(pid) + '/exe')
                 if executables and len(executables) >= 1:
                     elems = executables[0].split('->')
                     if len(elems) == 2:
                         executable = elems[1].strip()
-                        terracoind_dir = os.path.dirname(executable)
-                        terracoin_conf_file = terracoind_dir + '/.crown/crown.conf'
+                        crownd_dir = os.path.dirname(executable)
+                        crown_conf_file = crownd_dir + '/.crown/crown.conf'
                         conf_lines = []
                         try:
-                            conf_lines = self.remote_command('cat ' + terracoin_conf_file)
+                            conf_lines = self.remote_command('cat ' + crown_conf_file)
                         except Exception as e:
                             # probably error no such file or directory
-                            # try to read terracoind's cwd + cmdline
+                            # try to read crownd's cwd + cmdline
                             cwd_lines = self.remote_command('ls -l /proc/' + str(pid) + '/cwd')
                             if cwd_lines:
                                 elems = cwd_lines[0].split('->')
                                 if len(elems) >= 2:
                                     cwd = elems[1]
-                                    terracoin_conf_file = cwd + '/.crown/crown.conf'
+                                    crown_conf_file = cwd + '/.crown/crown.conf'
                                     try:
-                                        conf_lines = self.remote_command('cat ' + terracoin_conf_file)
+                                        conf_lines = self.remote_command('cat ' + crown_conf_file)
                                     except Exception as e:
                                         # second method did not suceed, so assume, that conf file is located
-                                        # i /home/<username>/.terracoincore directory
-                                        terracoin_conf_file = '/home/' + self.username + '/.crown/crown.conf'
-                                        conf_lines = self.remote_command('cat ' + terracoin_conf_file)
+                                        # i /home/<username>/.crowncore directory
+                                        crown_conf_file = '/home/' + self.username + '/.crown/crown.conf'
+                                        conf_lines = self.remote_command('cat ' + crown_conf_file)
 
                         for line in conf_lines:
                             elems = [e.strip() for e in line.split('=')]
                             if len(elems) == 2:
                                 config[elems[0]] = elems[1]
-                        terracoind_config_found = True
-            return terracoind_running, terracoind_config_found, config
+                        crownd_config_found = True
+            return crownd_running, crownd_config_found, config
         except Exception as e:
             return str(e)
 
@@ -332,9 +332,9 @@ class TerracoindSSH(object):
             self.connected = False
 
 
-class TerracoindIndexException(JSONRPCException):
+class CrowndIndexException(JSONRPCException):
     """
-    Exception for notifying, that terracoin daemon should have indexing option tuned on
+    Exception for notifying, that crown daemon should have indexing option tuned on
     """
     def __init__(self, parent_exception):
         JSONRPCException.__init__(self, parent_exception.error)
@@ -351,7 +351,7 @@ class TerracoindIndexException(JSONRPCException):
 def control_rpc_call(func):
     """
     Decorator function for catching HTTPConnection timeout and then resetting the connection.
-    :param func: TerracoindInterface's method decorated
+    :param func: CrowndInterface's method decorated
     """
     def catch_timeout_wrapper(*args, **kwargs):
         ret = None
@@ -383,11 +383,11 @@ def control_rpc_call(func):
                     except JSONRPCException as e:
                         logging.error('Error while calling of "' + str(func) + ' (2)". Details: ' + str(e))
                         if e.code == -5 and e.message == 'No information available for address':
-                            raise TerracoindIndexException(e)
+                            raise CrowndIndexException(e)
                         elif e.error.get('message','').find('403 Forbidden') >= 0 or \
                              e.error.get('message', '').find('502 Bad Gateway') >= 0:
                             self.http_conn.close()
-                            raise TerracoindConnectionError(e)
+                            raise CrowndConnectionError(e)
                         elif e.code in (-32603,):
                             # for these error codes don't retry the request with another rpc connetion
                             #  -32603: failure to verify vote
@@ -398,12 +398,12 @@ def control_rpc_call(func):
 
                     except (socket.gaierror, ConnectionRefusedError, TimeoutError, socket.timeout,
                             NoValidConnectionsError) as e:
-                        # exceptions raised most likely by not functioning terracoind node; try to switch to another node
+                        # exceptions raised most likely by not functioning crownd node; try to switch to another node
                         # if there is any in the config
                         logging.error('Error while calling of "' + str(func) + ' (3)". Details: ' + str(e))
-                        raise TerracoindConnectionError(e)
+                        raise CrowndConnectionError(e)
 
-                except TerracoindConnectionError as e:
+                except CrowndConnectionError as e:
                     # try another net config if possible
                     logging.error('Error while calling of "' + str(func) + '" (4). Details: ' + str(e))
                     if not self.switch_to_next_config():
@@ -455,7 +455,7 @@ def json_cache_wrapper(func, intf, cache_file_ident):
     Wrapper for saving/restoring rpc-call results inside cache files.
     """
     def json_call_wrapper(*args, **kwargs):
-        cache_file = intf.config.cache_dir + '/insight_terracoin_' + cache_file_ident + '.json'
+        cache_file = intf.config.cache_dir + '/insight_crown_' + cache_file_ident + '.json'
 
         try:  # looking into cache first
             j = simplejson.load(open(cache_file))
@@ -477,7 +477,7 @@ def json_cache_wrapper(func, intf, cache_file_ident):
     return json_call_wrapper
 
 
-class TerracoindInterface(WndUtils):
+class CrowndInterface(WndUtils):
     def __init__(self, config, window, connection=None, on_connection_begin_callback=None,
                  on_connection_try_fail_callback=None, on_connection_finished_callback=None):
         WndUtils.__init__(self, app_config=config)
@@ -596,7 +596,7 @@ class TerracoindInterface(WndUtils):
 
     def switch_to_next_config(self):
         """
-        If there is another terracoind config not used recently, switch to it. Called only when there was a problem
+        If there is another crownd config not used recently, switch to it. Called only when there was a problem
         with current connection config.
         :return: True if successfully switched or False if there was not another config
         """
@@ -627,7 +627,7 @@ class TerracoindInterface(WndUtils):
 
     def open(self):
         """
-        Opens connection to terracoin RPC. If it fails, then the next enabled conn config will be used, if any exists.
+        Opens connection to crown RPC. If it fails, then the next enabled conn config will be used, if any exists.
         :return: True if successfully connected, False if user cancelled the operation. If all of the attempts 
             fail, then appropriate exception will be raised.
         """
@@ -646,7 +646,7 @@ class TerracoindInterface(WndUtils):
                     return False
                 except (socket.gaierror, ConnectionRefusedError, TimeoutError, socket.timeout,
                         NoValidConnectionsError) as e:
-                    # exceptions raised by not likely functioning terracoind node; try to switch to another node
+                    # exceptions raised by not likely functioning crownd node; try to switch to another node
                     # if there is any in the config
                     if not self.switch_to_next_config():
                         raise e  # couldn't use another conn config, raise exception
@@ -673,7 +673,7 @@ class TerracoindInterface(WndUtils):
 
     def open_internal(self):
         """
-        Try to establish connection to terracoin RPC daemon for current connection config.
+        Try to establish connection to crown RPC daemon for current connection config.
         :return: True, if connection successfully establishes, False if user Cancels the operation (not always 
             cancelling will be possible - only when user is prompted for a password).
         """
@@ -689,7 +689,7 @@ class TerracoindInterface(WndUtils):
             if self.cur_conn_def.use_ssh_tunnel:
                 # RPC over SSH
                 if self.ssh is None:
-                    self.ssh = TerracoindSSH(self.cur_conn_def.ssh_conn_cfg.host, self.cur_conn_def.ssh_conn_cfg.port,
+                    self.ssh = CrowndSSH(self.cur_conn_def.ssh_conn_cfg.host, self.cur_conn_def.ssh_conn_cfg.port,
                                         self.cur_conn_def.ssh_conn_cfg.username)
                 try:
                     logging.debug('starting ssh.connect')
@@ -801,7 +801,7 @@ class TerracoindInterface(WndUtils):
     @control_rpc_call
     def issynchronized(self):
         if self.open():
-            # if connecting to HTTP(S) proxy do not check if terracoin daemon is synchronized
+            # if connecting to HTTP(S) proxy do not check if crown daemon is synchronized
             if self.cur_conn_def.is_http_proxy():
                 return True
             else:
@@ -867,7 +867,7 @@ class TerracoindInterface(WndUtils):
     @control_rpc_call
     def get_masternodelist(self, *args, data_max_age=MASTERNODES_CACHE_VALID_SECONDS):
         """
-        Returns masternode list, read from the Terracoin network or from the internal cache.
+        Returns masternode list, read from the Crown network or from the internal cache.
         :param args: arguments passed to the 'masternodelist' RPC call
         :param data_max_age: maximum age (in seconds) of the cached masternode data to used; if the
             cache is older than 'data_max_age', then an RPC call is performed to load newer masternode data;

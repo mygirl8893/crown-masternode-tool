@@ -26,7 +26,7 @@
    <item>
     <widget class="QLabel" name="lblMessage">
      <property name="text">
-      <string>List of unspent transaction outputs (UTXO) assigned to Masternode addresses. You can transfer all or selected outputs to a new Terracoin address.</string>
+      <string>List of unspent transaction outputs (UTXO) assigned to Masternode addresses. You can transfer all or selected outputs to a new Crown address.</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
@@ -244,7 +244,7 @@
      <item>
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>Fee (Terracoin):</string>
+        <string>Fee (Crown):</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>

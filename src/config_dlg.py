@@ -11,8 +11,8 @@ from PyQt5.QtWidgets import QInputDialog, QDialog, QLayout, QListWidgetItem, QPu
     QHBoxLayout, QMessageBox, QLineEdit, QMenu, QApplication, QDialogButtonBox, QAbstractButton
 
 import app_config
-from app_config import AppConfig, TerracoinNetworkConnectionCfg
-from terracoind_intf import TerracoindInterface
+from app_config import AppConfig, CrownNetworkConnectionCfg
+from crownd_intf import CrowndInterface
 from psw_cache import SshPassCache
 from ui.ui_config_dlg import Ui_ConfigDlg
 from ui.ui_conn_rpc_wdg import Ui_RpcConnection
@@ -159,7 +159,7 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
         self.rpc_cfg_widget.btnShowPassword.pressed.connect(self.on_btnShowPassword_pressed)
         self.rpc_cfg_widget.btnShowPassword.released.connect(self.on_btnShowPassword_released)
 
-        if len(self.local_config.terracoin_net_configs):
+        if len(self.local_config.crown_net_configs):
             self.lstConns.setCurrentRow(0)
 
         if self.local_config.hw_type == HWType.trezor:
@@ -207,7 +207,7 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
     def displayConnsConfigs(self):
         # display all connection configs
         self.lstConns.clear()
-        for cfg in self.local_config.terracoin_net_configs:
+        for cfg in self.local_config.crown_net_configs:
             item = QListWidgetItem(cfg.get_description())
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
             item.setCheckState(Qt.Checked if cfg.enabled else Qt.Unchecked)
@@ -277,7 +277,7 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
         ids = self.lstConns.selectedIndexes()
         cfgs = []
         for index in ids:
-            cfgs.append(self.local_config.terracoin_net_configs[index.row()])
+            cfgs.append(self.local_config.crown_net_configs[index.row()])
         if len(cfgs):
             text = self.local_config.encode_connections_to_json(cfgs)
             if text:
@@ -314,7 +314,7 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
         if self.queryDlg('Do you really want to restore default connection(s)?',
                          buttons=QMessageBox.Yes | QMessageBox.Cancel,
                          default_button=QMessageBox.Yes, icon=QMessageBox.Information) == QMessageBox.Yes:
-            cfgs = self.local_config.decode_connections(default_config.terracoind_default_connections)
+            cfgs = self.local_config.decode_connections(default_config.crownd_default_connections)
             if cfgs:
                 # force import default connections if there is no any in the configuration
                 added, updated = self.local_config.import_connections(cfgs, force_import=True)
@@ -351,7 +351,7 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
 
     def updateToolButtonsState(self):
         selected = self.lstConns.currentRow() >= 0
-        last = self.lstConns.currentRow() == len(self.local_config.terracoin_net_configs)-1
+        last = self.lstConns.currentRow() == len(self.local_config.crown_net_configs)-1
         first = self.lstConns.currentRow() == 0
 
         # disabling/enabling action connected to a button results in setting button's text from actions text
@@ -373,7 +373,7 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
         Update current connection description on list 
         """
         if self.lstConns.currentRow() >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
             item = self.lstConns.currentItem()
             if item:
                 old_state = self.disable_cfg_update
@@ -385,8 +385,8 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
 
     @pyqtSlot()
     def on_actNewConn_triggered(self):
-        cfg = TerracoinNetworkConnectionCfg('rpc')
-        self.local_config.terracoin_net_configs.append(cfg)
+        cfg = CrownNetworkConnectionCfg('rpc')
+        self.local_config.crown_net_configs.append(cfg)
 
         # add config to the connections list:
         item = QListWidgetItem(cfg.get_description())
@@ -432,10 +432,10 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
         ids = self.lstConns.selectedIndexes()
         cfgs = []
         for index in ids:
-            cfgs.append(self.local_config.terracoin_net_configs[index.row()])
+            cfgs.append(self.local_config.crown_net_configs[index.row()])
 
         if len(ids) >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
 
             if self.queryDlg('Do you really want to delete selected %d connection(s)?' % len(ids),
                              buttons=QMessageBox.Yes | QMessageBox.Cancel,
@@ -449,16 +449,16 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
                 # delete connections with descending order to not renumerate indexes items to-delete while deleting
                 # items
                 for row in rows_to_del:
-                    del self.local_config.terracoin_net_configs[row]
+                    del self.local_config.crown_net_configs[row]
                     self.lstConns.takeItem(row)
 
                 # try to select the same row
-                if last_row_selected < len(self.local_config.terracoin_net_configs):
+                if last_row_selected < len(self.local_config.crown_net_configs):
                     row = last_row_selected
                 else:
-                    row = len(self.local_config.terracoin_net_configs) - 1
+                    row = len(self.local_config.crown_net_configs) - 1
 
-                if row < len(self.local_config.terracoin_net_configs):
+                if row < len(self.local_config.crown_net_configs):
                     # select the last row
                     item = self.lstConns.item(row)
                     if item:
@@ -470,7 +470,7 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
     def on_btnMoveUpConn_clicked(self):
         if self.lstConns.currentRow() > 0:
             idx_from = self.lstConns.currentRow()
-            l = self.local_config.terracoin_net_configs
+            l = self.local_config.crown_net_configs
             l[idx_from-1], l[idx_from] = l[idx_from], l[idx_from-1]  # swap two elements
             cur_item = self.lstConns.takeItem(idx_from)
             self.lstConns.insertItem(idx_from-1, cur_item)
@@ -480,8 +480,8 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
     @pyqtSlot()
     def on_btnMoveDownConn_clicked(self):
         idx_from = self.lstConns.currentRow()
-        if idx_from >= 0 and idx_from < len(self.local_config.terracoin_net_configs)-1:
-            l = self.local_config.terracoin_net_configs
+        if idx_from >= 0 and idx_from < len(self.local_config.crown_net_configs)-1:
+            l = self.local_config.crown_net_configs
             l[idx_from+1], l[idx_from] = l[idx_from], l[idx_from+1]  # swap two elements
             cur_item = self.lstConns.takeItem(idx_from)
             self.lstConns.insertItem(idx_from+1, cur_item)
@@ -513,9 +513,9 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
 
     def on_lstConns_itemChanged(self, item):
         idx = self.lstConns.row(item)
-        if not self.disable_cfg_update and idx >= 0 and idx < len(self.local_config.terracoin_net_configs):
+        if not self.disable_cfg_update and idx >= 0 and idx < len(self.local_config.crown_net_configs):
             checked = item.checkState() == Qt.Checked
-            cfg = self.local_config.terracoin_net_configs[idx]
+            cfg = self.local_config.crown_net_configs[idx]
             cfg.enabled = checked
             self.set_modified()
             self.updateUi()
@@ -526,7 +526,7 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
 
     def on_chbConnEnabled_toggled(self, checked):
         if not self.disable_cfg_update and self.lstConns.currentRow() >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
             cfg.enabled = checked
             try:
                 self.disable_cfg_update = True
@@ -541,67 +541,67 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
         self.ssh_tunnel_widget.setVisible(self.chbUseSshTunnel.isChecked())
         self.btnSshReadRpcConfig.setVisible(self.chbUseSshTunnel.isChecked())
         if not self.disable_cfg_update and self.lstConns.currentRow() >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
             cfg.use_ssh_tunnel = checked
             self.updateCurConnDesc()
             self.set_modified()
 
     def on_edtRpcHost_textEdited(self, text):
         if not self.disable_cfg_update and self.lstConns.currentRow() >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
             cfg.host = text
             self.updateCurConnDesc()
             self.set_modified()
 
     def on_edtRpcPort_textEdited(self, text):
         if not self.disable_cfg_update and self.lstConns.currentRow() >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
             cfg.port = text
             self.updateCurConnDesc()
             self.set_modified()
 
     def on_edtRpcUsername_textEdited(self, text):
         if not self.disable_cfg_update and self.lstConns.currentRow() >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
             cfg.username = text
             self.set_modified()
 
     def on_edtRpcPassword_textEdited(self, text):
         if not self.disable_cfg_update and self.lstConns.currentRow() >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
             cfg.password = text
             self.set_modified()
 
     def chbRpcSSL_toggled(self, checked):
         if not self.disable_cfg_update and self.lstConns.currentRow() >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
             cfg.use_ssl = checked
             self.updateCurConnDesc()
             self.set_modified()
 
     def on_edtSshHost_textEdited(self, text):
         if not self.disable_cfg_update and self.lstConns.currentRow() >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
             cfg.ssh_conn_cfg.host = text
             self.updateCurConnDesc()
             self.set_modified()
 
     def on_edtSshPort_textEdited(self, text):
         if not self.disable_cfg_update and self.lstConns.currentRow() >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
             cfg.ssh_conn_cfg.port = text
             self.updateCurConnDesc()
             self.set_modified()
 
     def on_edtSshUsername_textEdited(self, text):
         if not self.disable_cfg_update and self.lstConns.currentRow() >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
             cfg.ssh_conn_cfg.username = text
             self.set_modified()
 
     def on_chbRandomConn_toggled(self, checked):
         if not self.disable_cfg_update:
-            self.local_config.random_terracoin_net_config = checked
+            self.local_config.random_crown_net_config = checked
             self.set_modified()
 
     @pyqtSlot(int)
@@ -628,7 +628,7 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
                 self.chbConnEnabled.setVisible(True)
                 self.chbUseSshTunnel.setVisible(True)
                 self.btnTestConnection.setVisible(True)
-                cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+                cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
                 self.chbConnEnabled.setChecked(cfg.enabled)
                 self.ssh_tunnel_widget.setVisible(cfg.use_ssh_tunnel)
                 self.btnSshReadRpcConfig.setVisible(cfg.use_ssh_tunnel)
@@ -654,14 +654,14 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
                 self.ssh_tunnel_widget.setVisible(False)
                 self.btnSshReadRpcConfig.setVisible(False)
                 self.rpc_cfg_widget.setVisible(False)
-            self.chbRandomConn.setChecked(self.local_config.random_terracoin_net_config)
+            self.chbRandomConn.setChecked(self.local_config.random_crown_net_config)
             self.buttonBox.button(QDialogButtonBox.Apply).setEnabled(self.get_is_modified())
         finally:
             self.disable_cfg_update = dis_old
 
     def on_btnSshReadRpcConfig_clicked(self):
         if self.lstConns.currentRow() >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
             host = cfg.ssh_conn_cfg.host
             port = cfg.ssh_conn_cfg.port
             username = cfg.ssh_conn_cfg.username
@@ -677,19 +677,19 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
                 username, ok = QInputDialog.getText(self, 'Username Dialog', 'Enter username for SSH connection:')
             if not ok or not username:
                 return
-            from terracoind_intf import TerracoindSSH
-            ssh = TerracoindSSH(host, int(port), username)
+            from crownd_intf import CrowndSSH
+            ssh = CrowndSSH(host, int(port), username)
             try:
                 ssh.connect()
-                terracoind_conf = ssh.find_terracoind_config()
+                crownd_conf = ssh.find_crownd_config()
                 self.disable_cfg_update = True
-                if isinstance(terracoind_conf, tuple) and len(terracoind_conf) >= 3:
-                    if not terracoind_conf[0]:
+                if isinstance(crownd_conf, tuple) and len(crownd_conf) >= 3:
+                    if not crownd_conf[0]:
                         self.infoMsg('Remore Crown daemon seems to be shut down')
-                    elif not terracoind_conf[1]:
+                    elif not crownd_conf[1]:
                         self.infoMsg('Could not find remote crown.conf file')
                     else:
-                        file = terracoind_conf[2]
+                        file = crownd_conf[2]
                         rpcuser = file.get('rpcuser', '')
                         rpcpassword = file.get('rpcpassword', '')
                         rpcport = file.get('rpcport', '9341')
@@ -721,9 +721,9 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
                             self.warnMsg("Remote crown.conf parameter 'rpcpassword' is not set, so RPC interface will  "
                                          "not work.")
                     self.updateUi()
-                elif isinstance(terracoind_conf, str):
+                elif isinstance(crownd_conf, str):
                     self.warnMsg("Couldn't read remote crownd configuration file due the following error: " +
-                                 terracoind_conf)
+                                 crownd_conf)
                 ssh.disconnect()
             except Exception as e:
                 self.errorMsg(str(e))
@@ -733,11 +733,11 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
 
     def on_btnTestConnection_clicked(self):
         if self.lstConns.currentRow() >= 0:
-            cfg = self.local_config.terracoin_net_configs[self.lstConns.currentRow()]
+            cfg = self.local_config.crown_net_configs[self.lstConns.currentRow()]
 
-            terracoind_intf = TerracoindInterface(self.config, window=self, connection=cfg)  # we are testing a specific connection
+            crownd_intf = CrowndInterface(self.config, window=self, connection=cfg)  # we are testing a specific connection
             try:
-                info = terracoind_intf.getinfo()
+                info = crownd_intf.getinfo()
                 if info:
                     if info.get('protocolversion'):
                         self.infoMsg('Connection successful')
@@ -747,5 +747,5 @@ class ConfigDlg(QDialog, Ui_ConfigDlg, WndUtils):
                 self.errorMsg('Connect error. Details: ' + str(e))
             finally:
 
-                del terracoind_intf
+                del crownd_intf
 

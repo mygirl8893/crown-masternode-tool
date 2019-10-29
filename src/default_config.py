@@ -1,11 +1,11 @@
 
 # default "public" connections for RPC proxy
-terracoind_default_connections = [
+crownd_default_connections = [
     {
         "use_ssh_tunnel": False,
-        "host": "publicrpc1.terracoin.io",
+        "host": "publicrpc1.crownplatform.com",
         "port": "443",
-        "username": "tmtrpc",
+        "username": "cmtrpc",
         "password": "6741414141414262346a304e7035654570594177594f6d4c326d6362504b55506a57467168516e39537150635931627244443178346755782d7258445934455f796d764479425f415659566a6e544b46427a7957356c674b454c7367533742786c5336765346474a73693867735865704e56376c437635615a537965536d375164544b4e79447267746d6e30",
         "use_ssl": True
     }

@@ -4,7 +4,7 @@ import logging
 from btchip.btchipUtils import compress_public_key
 from hw_common import HardwareWalletCancelException, clean_bip32_path
 from wnd_utils import WndUtils
-from terracoin_utils import *
+from crown_utils import *
 from PyQt5.QtWidgets import QMessageBox
 import unicodedata
 
@@ -20,7 +20,7 @@ def process_ledger_exceptions(func):
         except BTChipException as e:
             logging.exception('Error while communicating with Ledger hardware wallet.')
             if (e.sw == 0x6d00):
-                e.message += '\n\nMake sure the Terracoin app is running on your Ledger device.'
+                e.message += '\n\nMake sure the Crown app is running on your Ledger device.'
             elif (e.sw == 0x6982):
                 e.message += '\n\nMake sure you have entered the PIN on your Ledger device.'
             raise

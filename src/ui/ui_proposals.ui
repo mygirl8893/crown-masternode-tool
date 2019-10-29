@@ -394,7 +394,7 @@
               <item>
                <widget class="QPushButton" name="btnVotesRefresh">
                 <property name="toolTip">
-                 <string>Reads new votes from the Terracoin network</string>
+                 <string>Reads new votes from the Crown network</string>
                 </property>
                 <property name="text">
                  <string>Refresh</string>

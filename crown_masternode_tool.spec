@@ -64,7 +64,7 @@ lib_path = next(p for p in sys.path if 'site-packages' in p)
 add_files.append( (os.path.join(lib_path, 'bitcoin/english.txt'),'/bitcoin') )
 add_files.append( (os.path.join(lib_path, 'mnemonic/wordlist/english.txt'),'/mnemonic/wordlist') )
 
-a = Analysis(['src/terracoin_masternode_tool.py'],
+a = Analysis(['src/crown_masternode_tool.py'],
              pathex=[base_dir],
              binaries=[],
              datas=add_files,
@@ -84,16 +84,16 @@ exe = EXE(pyz,
           a.binaries,
           a.zipfiles,
           a.datas,
-          name='TerracoinMasternodeTool',
+          name='CrownMasternodeTool',
           debug=False,
           strip=False,
           upx=False,
           console=False,
-		  icon=os.path.join('img',('tmt.%s' % ('icns' if os_type=='darwin' else 'ico'))))
+		  icon=os.path.join('img',('cmt.%s' % ('icns' if os_type=='darwin' else 'ico'))))
 
 if os_type == 'darwin':
     app = BUNDLE(exe,
-                 name='TerracoinMasternodeTool.app',
+                 name='CrownMasternodeTool.app',
                  icon='img/cmt.icns',
                  bundle_identifier=None,
                      info_plist={
@@ -113,10 +113,10 @@ os.chdir(dist_path)
 
 if os_type == 'win32':
     print('Compressing Windows executable')
-    os.system('"7z.exe" a %s %s -mx0' % (os.path.join(all_bin_dir, 'TerracoinMasternodeTool_' + version_str + '.win' + no_bits + '.zip'),  'TerracoinMasternodeTool.exe'))
+    os.system('"7z.exe" a %s %s -mx0' % (os.path.join(all_bin_dir, 'CrownnMasternodeTool_' + version_str + '.win' + no_bits + '.zip'),  'CrownMasternodeTool.exe'))
 elif os_type == 'darwin':
     print('Compressing Mac executable')
-    os.system('zip -r "%s" "%s"' % (os.path.join(all_bin_dir, 'TerracoinMasternodeTool_' + version_str + '.mac.zip'),  'TerracoinMasternodeTool.app'))
+    os.system('zip -r "%s" "%s"' % (os.path.join(all_bin_dir, 'CrownMasternodeTool_' + version_str + '.mac.zip'),  'CrownMasternodeTool.app'))
 elif os_type == 'linux':
     print('Compressing Linux executable')
-    os.system('tar -zcvf %s %s' % (os.path.join(all_bin_dir, 'TerracoinMasternodeTool_' + version_str + '.linux.tar.gz'),  'TerracoinMasternodeTool'))
+    os.system('tar -zcvf %s %s' % (os.path.join(all_bin_dir, 'CrownMasternodeTool_' + version_str + '.linux.tar.gz'),  'CrownMasternodeTool'))

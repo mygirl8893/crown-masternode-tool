@@ -352,13 +352,13 @@
               </size>
              </property>
              <property name="toolTip">
-              <string>Terracoin address of the 5000 TRC collateral, coverted from BIP32 path with hardware wallet.</string>
+              <string>Crown address of the 5000 TRC collateral, coverted from BIP32 path with hardware wallet.</string>
              </property>
              <property name="readOnly">
               <bool>false</bool>
              </property>
              <property name="placeholderText">
-              <string>Terracoin address</string>
+              <string>Crown address</string>
              </property>
             </widget>
            </item>
@@ -397,7 +397,7 @@
                 </size>
                </property>
                <property name="toolTip">
-                <string>Convert Terracoin address to BIP32 path using hardware wallet</string>
+                <string>Convert Crown address to BIP32 path using hardware wallet</string>
                </property>
                <property name="text">
                 <string/>
@@ -431,7 +431,7 @@
                 </size>
                </property>
                <property name="toolTip">
-                <string>Convert BIP32 path to Terracoin address using hardware wallet</string>
+                <string>Convert BIP32 path to Crown address using hardware wallet</string>
                </property>
                <property name="text">
                 <string/>
@@ -847,7 +847,7 @@
               </size>
              </property>
              <property name="toolTip">
-              <string>Check connection with Terracoin daemon</string>
+              <string>Check connection with Crown daemon</string>
              </property>
              <property name="text">
               <string>Check RPC connection</string>
@@ -875,7 +875,7 @@
               </size>
              </property>
              <property name="toolTip">
-              <string>Open configuration window of communication with a Terracoin daemon</string>
+              <string>Open configuration window of communication with a Crown daemon</string>
              </property>
              <property name="text">
               <string>Configure</string>

@@ -119,9 +119,9 @@ def connect_keepkey(passphrase_encoding: Optional[str] = 'NFC',
 
 class MyTxApiInsight(TxApiInsight):
 
-    def __init__(self, network, url, terracoind_inf, cache_dir, zcash=None):
+    def __init__(self, network, url, crownd_inf, cache_dir, zcash=None):
         TxApiInsight.__init__(self, network, url, zcash)
-        self.terracoind_inf = terracoind_inf
+        self.crownd_inf = crownd_inf
         self.cache_dir = cache_dir
 
     def fetch_json(self, url, resource, resourceid):
@@ -134,7 +134,7 @@ class MyTxApiInsight(TxApiInsight):
             except:
                 pass
         try:
-            j = self.terracoind_inf.getrawtransaction(resourceid, 1)
+            j = self.crownd_inf.getrawtransaction(resourceid, 1)
         except Exception as e:
             raise
         if cache_file:
@@ -150,11 +150,11 @@ def prepare_transfer_tx(main_ui, utxos_to_spend, dest_address, tx_fee):
     Creates a signed transaction.
     :param main_ui: Main window for configuration data
     :param utxos_to_spend: list of utxos to send
-    :param dest_address: destination (Terracoin) address
+    :param dest_address: destination (Crown) address
     :param tx_fee: transaction fee
     :return: tuple (serialized tx, total transaction amount in satoshis)
     """
-    tx_api = MyTxApiInsight('insight_terracoin', None, main_ui.terracoind_intf, main_ui.config.cache_dir)
+    tx_api = MyTxApiInsight('insight_crown', None, main_ui.crownd_intf, main_ui.config.cache_dir)
     client = main_ui.hw_client
     client.set_tx_api(tx_api)
     inputs = []
@@ -171,8 +171,8 @@ def prepare_transfer_tx(main_ui, utxos_to_spend, dest_address, tx_fee):
     amt -= tx_fee
     amt = int(amt)
 
-    # check if dest_address is a Terracoin address or a script address and then set appropriate script_type
-    # https://github.com/terracoin/terracoin/blob/master/src/chainparams.cpp#L361
+    # check if dest_address is a Crown address or a script address and then set appropriate script_type
+    # https://github.com/crown/crown/blob/master/src/chainparams.cpp#L361
     if dest_address.startswith('3'):
         stype = proto_types.PAYTOSCRIPTHASH
     else:
@@ -184,14 +184,14 @@ def prepare_transfer_tx(main_ui, utxos_to_spend, dest_address, tx_fee):
         script_type=stype
     )
     outputs.append(ot)
-    signed = client.sign_tx('Terracoin', inputs, outputs)
+    signed = client.sign_tx('Crown', inputs, outputs)
     return signed[1], amt
 
 
 def sign_message(main_ui, bip32path, message):
     client = main_ui.hw_client
     address_n = client.expand_path(clean_bip32_path(bip32path))
-    return client.sign_message('Terracoin', address_n, message)
+    return client.sign_message('Crown', address_n, message)
 
 
 def change_pin(main_ui, remove=False):
@@ -217,7 +217,7 @@ def get_entropy(hw_device_id, len_bytes):
             client.get_entropy(len_bytes)
             client.close()
         else:
-            raise Exception('Couldn\'t connect to Trezor device.')
+            raise Exception('Couldn\'t connect to Keepkey device.')
     except CallException as e:
         if not (len(e.args) >= 0 and str(e.args[1]) == 'Action cancelled by user'):
             raise

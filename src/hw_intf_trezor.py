@@ -115,9 +115,9 @@ def connect_trezor(device_id: Optional[str] = None) -> Optional[MyTrezorClient]:
 
 class MyTxApiInsight(TxApiInsight):
 
-    def __init__(self, network, url, terracoind_inf, cache_dir, zcash=None):
+    def __init__(self, network, url, crownd_inf, cache_dir, zcash=None):
         TxApiInsight.__init__(self, network, url, zcash)
-        self.terracoind_inf = terracoind_inf
+        self.crownd_inf = crownd_inf
         self.cache_dir = cache_dir
 
     def fetch_json(self, resource, resourceid):
@@ -131,7 +131,7 @@ class MyTxApiInsight(TxApiInsight):
             except:
                 pass
         try:
-            j = self.terracoind_inf.getrawtransaction(resourceid, 1)
+            j = self.crownd_inf.getrawtransaction(resourceid, 1)
         except Exception as e:
             raise
         if cache_file:
@@ -142,7 +142,7 @@ class MyTxApiInsight(TxApiInsight):
         return j
 
 
-TxApiTerracoin = TxApiInsight(network='insight_terracoin', url='https://insight.terracoin.io/api/')
+TxApiCrown = TxApiInsight(network='insight_crown', url='https://insight-01.crownplatform.com/')
 
 
 def prepare_transfer_tx(main_ui, utxos_to_spend, dest_address, tx_fee):
@@ -150,12 +150,12 @@ def prepare_transfer_tx(main_ui, utxos_to_spend, dest_address, tx_fee):
     Creates a signed transaction.
     :param main_ui: Main window for configuration data
     :param utxos_to_spend: list of utxos to send
-    :param dest_address: destination (Terracoin) address
+    :param dest_address: destination (Crown) address
     :param tx_fee: transaction fee
     :return: tuple (serialized tx, total transaction amount in satoshis)
     """
-    # tx_api = MyTxApiInsight('insight_terracoin', None, main_ui.terracoind_intf, main_ui.config.cache_dir)
-    tx_api = TxApiTerracoin
+    # tx_api = MyTxApiInsight('insight_crown', None, main_ui.crownd_intf, main_ui.config.cache_dir)
+    tx_api = TxApiCrown
     client = main_ui.hw_client
     client.set_tx_api(tx_api)
     inputs = []
@@ -179,14 +179,17 @@ def prepare_transfer_tx(main_ui, utxos_to_spend, dest_address, tx_fee):
     amt -= tx_fee
     amt = int(amt)
 
-    # check if dest_address is a Terracoin address or a script address and then set appropriate script_type
-    # https://github.com/terracoin/terracoin/blob/master/src/chainparams.cpp#L136
-    if dest_address.startswith('3'):
+    # check if dest_address is a Crown address or a script address and then set appropriate script_type
+    # https://gitlab.crownplatform.com/crown/crown-core/blob/master/src/chainparams.cpp#L265
+    if dest_address.startswith('CRM'):
         stype = proto_types.PAYTOSCRIPTHASH
-        logging.info('Transaction type: PAYTOSCRIPTHASH' + str(stype))
-    else:
+        logging.info('Transaction type: PAYTOSCRIPTHASH')
+    elif dest_address.startswith('CRW'):
         stype = proto_types.PAYTOADDRESS
-        logging.info('Transaction type: PAYTOADDRESS ' + str(stype))
+        logging.info('Transaction type: PAYTOADDRESS')
+    else:
+        stype = proto_types.UNSUPPORTED
+        logging.info('Transaction type: UNSUPPORTED')
 
     ot = proto_types.TxOutputType(
         address=dest_address,
@@ -195,7 +198,7 @@ def prepare_transfer_tx(main_ui, utxos_to_spend, dest_address, tx_fee):
     )
     logging.info('dest_address length: ' + str(len(dest_address)))
     outputs.append(ot)
-    signed = client.sign_tx('Terracoin', inputs, outputs)
+    signed = client.sign_tx('Crown', inputs, outputs)
     logging.info('Signed transaction')
     return signed[1], amt
 
@@ -203,7 +206,7 @@ def prepare_transfer_tx(main_ui, utxos_to_spend, dest_address, tx_fee):
 def sign_message(main_ui, bip32path, message):
     client = main_ui.hw_client
     address_n = client.expand_path(bip32path)
-    return client.sign_message('Terracoin', address_n, message)
+    return client.sign_message('Crown', address_n, message)
 
 
 def change_pin(main_ui, remove=False):

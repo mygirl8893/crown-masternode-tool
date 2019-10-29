@@ -136,13 +136,13 @@ class DBCache(object):
                 break
         if not ext_attributes_loaded_exists:
             # column for saving information whether additional attributes has been read from external sources
-            # like services.terracoin.io (1: yes, 0: no)
+            # like services.crownplatform.com (1: yes, 0: no)
             cur.execute("ALTER TABLE PROPOSALS ADD COLUMN ext_attributes_loaded INTEGER")
         if not prop_owner_exists:
-            # proposal's owner from an external source like services.terracoin.io
+            # proposal's owner from an external source like services.crownplatform.com
             cur.execute("ALTER TABLE PROPOSALS ADD COLUMN owner TEXT")
         if not prop_title_exists:
-            # proposal's title from an external source like services.terracoin.io
+            # proposal's title from an external source like services.crownplatform.com
             cur.execute("ALTER TABLE PROPOSALS ADD COLUMN title TEXT")
 
         cur.execute("CREATE TABLE IF NOT EXISTS VOTING_RESULTS(id INTEGER PRIMARY KEY, proposal_id INTEGER,"

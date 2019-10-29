@@ -7,17 +7,17 @@ import logging
 from PyQt5.QtCore import Qt, pyqtSlot, QModelIndex
 from PyQt5.QtWidgets import QMessageBox, QDialog, QLayout, QTableWidgetItem, QDialogButtonBox
 import wnd_utils as wnd_utils
-from terracoind_intf import TerracoindIndexException
+from crownd_intf import CrowndIndexException
 from ui import ui_find_coll_tx_dlg
 
 
 class FindCollateralTxDlg(QDialog, ui_find_coll_tx_dlg.Ui_FindCollateralTxDlg, wnd_utils.WndUtils):
-    def __init__(self, parent, terracoind_intf, terracoin_address):
+    def __init__(self, parent, crownd_intf, crown_address):
         QDialog.__init__(self, parent=parent)
         wnd_utils.WndUtils.__init__(self, parent.config)
         self.main_wnd = parent
-        self.terracoind_intf = terracoind_intf
-        self.terracoin_address = terracoin_address
+        self.crownd_intf = crownd_intf
+        self.crown_address = crown_address
         self.utxos = []
         self.block_count = 0
         self.setupUi()
@@ -26,7 +26,7 @@ class FindCollateralTxDlg(QDialog, ui_find_coll_tx_dlg.Ui_FindCollateralTxDlg, w
         try:
             ui_find_coll_tx_dlg.Ui_FindCollateralTxDlg.setupUi(self, self)
             self.setWindowTitle('Find collateral transaction')
-            self.edtAddress.setText(self.terracoin_address)
+            self.edtAddress.setText(self.crown_address)
             self.lblMessage.setVisible(False)
 
             self.lblMessage.setVisible(True)
@@ -70,17 +70,17 @@ class FindCollateralTxDlg(QDialog, ui_find_coll_tx_dlg.Ui_FindCollateralTxDlg, w
             self.lblMessage.setVisible(False)
             self.centerByWindow(self.main_wnd)
         else:
-            self.lblMessage.setText('<b style="color:red">Found no unspent transactions with 5000 TRC '
+            self.lblMessage.setText('<b style="color:red">Found no unspent transactions with 10000 CRW '
                                     'amount sent to address %s.<b>' %
-                                    self.terracoin_address)
+                                    self.crown_address)
             self.lblMessage.setVisible(True)
 
         self.updateUi()
 
     def load_utxos_thread(self, ctrl):
         try:
-            if not self.terracoind_intf.open():
-                self.errorMsg('Terracoin daemon not connected')
+            if not self.crownd_intf.open():
+                self.errorMsg('Crown daemon not connected')
             else:
                 try:
                     # ctrl.dlg_config_fun(dlg_title="Loading unspent transaction outputs...",
@@ -88,21 +88,21 @@ class FindCollateralTxDlg(QDialog, ui_find_coll_tx_dlg.Ui_FindCollateralTxDlg, w
                     #                     show_progress_bar=False)
                     # ctrl.display_msg_fun('<b>Loading unspent transaction outputs. Please wait...</b>')
 
-                    self.block_count = self.terracoind_intf.getblockcount()
-                    self.utxos = self.terracoind_intf.getaddressutxos([self.terracoin_address])
-                    self.utxos = [utxo for utxo in self.utxos if utxo['satoshis'] == 500000000000 ]
+                    self.block_count = self.crownd_intf.getblockcount()
+                    self.utxos = self.crownd_intf.getaddressutxos([self.crown_address])
+                    self.utxos = [utxo for utxo in self.utxos if utxo['satoshis'] == 1000000000000 ]
 
                     try:
                         # for each utxo read block time
                         for utxo in self.utxos:
-                            blockhash = self.terracoind_intf.getblockhash(utxo.get('height'))
-                            bh = self.terracoind_intf.getblockheader(blockhash)
+                            blockhash = self.crownd_intf.getblockhash(utxo.get('height'))
+                            bh = self.crownd_intf.getblockheader(blockhash)
                             utxo['time_str'] = self.main_wnd.config.to_string(datetime.datetime.fromtimestamp(bh['time']))
                             utxo['confirmations'] = self.block_count - bh.get('height') + 1
                     except Exception as e:
                         self.errorMsg(str(e))
 
-                except TerracoindIndexException as e:
+                except CrowndIndexException as e:
                     self.errorMsg(str(e))
 
                 except Exception as e:

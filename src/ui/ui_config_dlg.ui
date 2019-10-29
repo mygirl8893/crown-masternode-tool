@@ -34,9 +34,9 @@
      <property name="currentIndex">
       <number>1</number>
      </property>
-     <widget class="QWidget" name="tabTerracoind">
+     <widget class="QWidget" name="tabCrownd">
       <attribute name="title">
-       <string>Terracoin network</string>
+       <string>Crown network</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <property name="spacing">
@@ -442,7 +442,7 @@
        <item>
         <widget class="QCheckBox" name="chbDownloadProposalExternalData">
          <property name="text">
-          <string>Download external proposal attributes (services.terracoin.io)</string>
+          <string>Download external proposal attributes (services.crownplatform.com)</string>
          </property>
         </widget>
        </item>

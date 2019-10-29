@@ -15,7 +15,7 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QDialog, QTableView, QHeaderView, QMessageBox
 import app_cache as cache
 from app_config import MIN_TX_FEE, FEE_SAT_PER_BYTE
-from terracoind_intf import TerracoindInterface, TerracoindIndexException
+from crownd_intf import CrowndInterface, CrowndIndexException
 from hw_intf import prepare_transfer_tx, get_address
 from wnd_utils import WndUtils
 from ui import ui_send_payout_dlg
@@ -33,7 +33,7 @@ class PaymentTableModel(QAbstractTableModel):
         self.parent_wnd = parent_wnd
         self.columns = [
             # field_name, column header, visible, default col width
-            ('satoshis', 'Amount (Terracoin)', True, 100),
+            ('satoshis', 'Amount (Crown)', True, 100),
             ('confirmations', 'Confirmations', True, 100),
             ('time_str', 'TX Date/Time', True, 140),
             ('mn', 'Masternode', True, 80),
@@ -215,7 +215,7 @@ class SendPayoutDlg(QDialog, ui_send_payout_dlg.Ui_SendPayoutDlg, WndUtils):
     def __init__(self, utxos_source, main_ui):
         """
         Constructor
-        :param utxos_source: list of tuples (terracoin address, bip32 path) - from which
+        :param utxos_source: list of tuples (crown address, bip32 path) - from which
             we'll list all unspent outputs
         :param masternodes: list of masternodes in configuration; used for checking if txid/index 
             is assigned to mn's collateral 
@@ -223,10 +223,10 @@ class SendPayoutDlg(QDialog, ui_send_payout_dlg.Ui_SendPayoutDlg, WndUtils):
         QDialog.__init__(self)
         WndUtils.__init__(self, main_ui.config)
         assert isinstance(utxos_source, list)
-        assert isinstance(main_ui.terracoind_intf, TerracoindInterface)
+        assert isinstance(main_ui.crownd_intf, CrowndInterface)
         self.utxos_source = utxos_source
         self.rawtransactions = {}
-        self.terracoind_intf = main_ui.terracoind_intf
+        self.crownd_intf = main_ui.crownd_intf
         self.table_model = None
         self.source_address_mode = False
         self.utxos = []
@@ -340,7 +340,7 @@ class SendPayoutDlg(QDialog, ui_send_payout_dlg.Ui_SendPayoutDlg, WndUtils):
     @pyqtSlot()
     def on_btnSend_clicked(self):
         """
-        Sends funds to Terracoin address specified by user.
+        Sends funds to Crown address specified by user.
         """
         utxos = self.table_model.getSelectedUtxos()
         if len(utxos):
@@ -353,7 +353,7 @@ class SendPayoutDlg(QDialog, ui_send_payout_dlg.Ui_SendPayoutDlg, WndUtils):
                 bip32_to_address = {}  # for saving addresses read from HW by BIP32 path
 
                 # check if user selected masternode collateral transaction; if so display warning
-                # also check if UTXO terracoin address matches address of BIP32 path in HW
+                # also check if UTXO crown address matches address of BIP32 path in HW
                 for utxo_idx, utxo in enumerate(utxos):
                     if utxo['collateral']:
                         if self.queryDlg(
@@ -373,7 +373,7 @@ class SendPayoutDlg(QDialog, ui_send_payout_dlg.Ui_SendPayoutDlg, WndUtils):
                         addr_hw = get_address(self.main_ui, bip32_path)
                         bip32_to_address[bip32_path] = addr_hw
                     if addr_hw != utxo['address']:
-                        self.errorMsg("Terracoin address inconsistency between UTXO (%d) and a HW's path: %s.\n\n"
+                        self.errorMsg("Crown address inconsistency between UTXO (%d) and a HW's path: %s.\n\n"
                                      "<b>HW address</b>: %s\n"
                                      "<b>UTXO address</b>: %s\n\n"
                                      "Cannot continue." %
@@ -381,7 +381,7 @@ class SendPayoutDlg(QDialog, ui_send_payout_dlg.Ui_SendPayoutDlg, WndUtils):
                         return
 
                 try:
-                    if self.terracoind_intf.validateaddress(address).get('isvalid', False):
+                    if self.crownd_intf.validateaddress(address).get('isvalid', False):
                         fee = self.edtTxFee.value() * 1e8
 
                         try:
@@ -401,20 +401,20 @@ class SendPayoutDlg(QDialog, ui_send_payout_dlg.Ui_SendPayoutDlg, WndUtils):
 
                             if self.queryDlg('Broadcast signed transaction?\n\n'
                                              '<b>Destination address</b>: %s\n'
-                                             '<b>Amount to send</b>: %s Terracoin\n'
-                                             '<b>Fee</b>: %s Terracoin\n'
+                                             '<b>Amount to send</b>: %s Crown\n'
+                                             '<b>Fee</b>: %s Crown\n'
                                              '<b>Size</b>: %d bytes' % ( address, str(round(amount_to_send / 1e8, 8)),
                                                                   str(round(fee / 1e8, 8) ),
                                                                   len(tx_hex)/2),
                                              buttons=QMessageBox.Yes | QMessageBox.Cancel,
                                              default_button=QMessageBox.Yes) == QMessageBox.Yes:
 
-                                # decoded_tx = self.terracoind_intf.decoderawtransaction(tx_hex)
+                                # decoded_tx = self.crownd_intf.decoderawtransaction(tx_hex)
 
                                 if SCREENSHOT_MODE:
                                     txid = '2195aecd5575e37fedf30e6a7ae317c6ba3650a004dc7e901210ac454f61a2e8'
                                 else:
-                                    txid = self.terracoind_intf.sendrawtransaction(tx_hex)
+                                    txid = self.crownd_intf.sendrawtransaction(tx_hex)
 
                                 if txid:
                                     block_explorer = self.main_ui.config.block_explorer_tx
@@ -429,11 +429,11 @@ class SendPayoutDlg(QDialog, ui_send_payout_dlg.Ui_SendPayoutDlg, WndUtils):
                                 else:
                                     self.errorMsg('Problem with sending transaction: no txid returned')
                     else:
-                        self.errorMsg('Invalid destination Terracoin address (%s).' % address)
+                        self.errorMsg('Invalid destination Crown address (%s).' % address)
                 except Exception as e:
                     self.errorMsg(str(e))
             else:
-                self.errorMsg('Missing destination Terracoin address.')
+                self.errorMsg('Missing destination Crown address.')
         else:
             self.errorMsg('No UTXO to send.')
 
@@ -454,8 +454,8 @@ class SendPayoutDlg(QDialog, ui_send_payout_dlg.Ui_SendPayoutDlg, WndUtils):
                     break
 
     def load_utxos_thread(self, ctrl):
-        if not self.terracoind_intf.open():
-            self.errorMsg('Terracoin daemon not connected')
+        if not self.crownd_intf.open():
+            self.errorMsg('Crown daemon not connected')
         else:
             try:
                 ctrl.dlg_config_fun(dlg_title="Loading Unspent Transaction Outputs...", show_message=True,
@@ -467,21 +467,21 @@ class SendPayoutDlg(QDialog, ui_send_payout_dlg.Ui_SendPayoutDlg, WndUtils):
                         addresses.append(a[0])
 
                 if len(addresses):
-                    self.utxos = self.terracoind_intf.getaddressutxos(addresses)
+                    self.utxos = self.crownd_intf.getaddressutxos(addresses)
 
                 try:
                     # for each utxo read block time
-                    cur_block_height = self.terracoind_intf.getblockcount()
+                    cur_block_height = self.crownd_intf.getblockcount()
 
                     for idx, utxo in enumerate(self.utxos):
-                        blockhash = self.terracoind_intf.getblockhash(utxo.get('height'))
-                        bh = self.terracoind_intf.getblockheader(blockhash)
+                        blockhash = self.crownd_intf.getblockhash(utxo.get('height'))
+                        bh = self.crownd_intf.getblockheader(blockhash)
                         utxo['time_str'] = self.main_ui.config.to_string(datetime.datetime.fromtimestamp(bh['time']))
                         utxo['confirmations'] = cur_block_height - bh.get('height') + 1
                         utxo['coinbase_locked'] = False
 
                         try:
-                            rawtx = self.terracoind_intf.getrawtransaction(utxo.get('txid'), 1)
+                            rawtx = self.crownd_intf.getrawtransaction(utxo.get('txid'), 1)
                             if rawtx:
                                 self.rawtransactions[utxo.get('txid')] = rawtx['hex']
 
@@ -491,7 +491,7 @@ class SendPayoutDlg(QDialog, ui_send_payout_dlg.Ui_SendPayoutDlg, WndUtils):
                         except Exception:
                             logging.exception('Error while verifying transaction coinbase')
 
-                        # for a given utxo terracoin address find its bip32 path
+                        # for a given utxo crown address find its bip32 path
                         found = False
                         for a in self.utxos_source:
                             if a[0] == utxo['address']:
@@ -504,7 +504,7 @@ class SendPayoutDlg(QDialog, ui_send_payout_dlg.Ui_SendPayoutDlg, WndUtils):
                 except Exception as e:
                     self.errorMsg(str(e))
 
-            except TerracoindIndexException as e:
+            except CrowndIndexException as e:
                 self.errorMsg(str(e))
 
             except Exception as e:

@@ -1,14 +1,14 @@
 python-bitcoinrpc>=1.0
 bitcoin>=1.1.42
-trezor>=0.7.16
-keepkey
+trezor>=0.11.3
+keepkey==6.1.0
+libusb1==1.7.1
 PyQt5==5.9.2
 PyQtChart==5.9.2
-pyinstaller
+pyinstaller>=3.3
 paramiko>=2.2.1
 requests>=2.18.4
 mnemonic>=0.18
 simplejson
 cryptography
-#-e git+https://github.com/chaeplin/python-keepkey#egg=keepkey
 -e git+https://github.com/Bertrand256/btchip-python#egg=btchip-python

@@ -10,7 +10,7 @@ import re
 from PyQt5.QtCore import pyqtSlot, QAbstractTableModel, QVariant, Qt, QPoint
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QDialog, QMenu, QApplication, QLineEdit, QShortcut, QMessageBox
-from terracoin_utils import bip32_path_string_to_n, pubkey_to_address
+from crown_utils import bip32_path_string_to_n, pubkey_to_address
 from hw_common import HardwareWalletCancelException
 from ui import ui_initialize_hw_dlg
 from doc_dlg import show_doc_dlg
@@ -984,7 +984,7 @@ class PreviewAddressesModel(QAbstractTableModel):
             "Path",
             'Address'
         ]
-        self.addresses = []  # list of tuples: bip32 path, terracoin address
+        self.addresses = []  # list of tuples: bip32 path, crown address
 
     def refresh_view(self):
         self.beginResetModel()

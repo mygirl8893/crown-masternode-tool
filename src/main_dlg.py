@@ -26,7 +26,7 @@ from config_dlg import ConfigDlg
 from find_coll_tx_dlg import FindCollateralTxDlg
 import about_dlg
 import app_cache as cache
-import terracoin_utils
+import crown_utils
 import hw_pass_dlg
 import hw_pin_dlg
 import send_payout_dlg
@@ -34,8 +34,8 @@ import app_utils
 from initialize_hw_dlg import HwInitializeDlg
 from proposals_dlg import ProposalsDlg
 from app_config import AppConfig, MasterNodeConfig, APP_NAME_LONG, APP_NAME_SHORT, PROJECT_URL
-from terracoin_utils import bip32_path_n_to_string
-from terracoind_intf import TerracoindInterface, TerracoindIndexException
+from crown_utils import bip32_path_n_to_string
+from crownd_intf import CrowndInterface, CrowndIndexException
 from hw_common import HardwareWalletCancelException, HardwareWalletPinException
 import hw_intf
 from hw_setup_dlg import HwSetupDlg
@@ -57,21 +57,21 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         self.config = AppConfig()
         self.config.init(app_path)
         WndUtils.set_app_config(self, self.config)
-        self.terracoind_intf = TerracoindInterface(self.config, window=None,
+        self.crownd_intf = CrowndInterface(self.config, window=None,
                                          on_connection_begin_callback=self.on_connection_begin,
                                          on_connection_try_fail_callback=self.on_connection_failed,
                                          on_connection_finished_callback=self.on_connection_finished)
-        self.terracoind_info = {}
-        self.is_terracoind_syncing = False
-        self.terracoind_connection_ok = False
-        self.connecting_to_terracoind = False
+        self.crownd_info = {}
+        self.is_crownd_syncing = False
+        self.crownd_connection_ok = False
+        self.connecting_to_crownd = False
         self.hw_client = None
         self.curMasternode = None
         self.editingEnabled = False
         self.app_path = app_path
 
         # bip32 cache:
-        #   { "terracoin_address_of_the_parent": { bip32_path: terracoin_address }
+        #   { "crown_address_of_the_parent": { bip32_path: crown_address }
         self.bip32_cache = { }
         self.setupUi()
 
@@ -82,7 +82,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
 
         SshPassCache.set_parent_window(self)
         self.inside_setup_ui = True
-        self.terracoind_intf.window = self
+        self.crownd_intf.window = self
         self.btnHwBip32ToAddress.setEnabled(False)
         # self.edtMnStatus.setReadOnly(True)
         # self.edtMnStatus.setStyleSheet('QLineEdit{background-color: lightgray}')
@@ -219,7 +219,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         try:
             import urllib.request
             response = urllib.request.urlopen(
-                'https://raw.githubusercontent.com/TheSin-/terracoin-masternode-tool/master/version.txt')
+                'https://raw.githubusercontent.com/walkjivefly/crown-masternode-tool/master/version.txt')
             contents = response.read()
             lines = contents.decode().splitlines()
             remote_version_str = app_utils.extract_app_version(lines)
@@ -256,8 +256,8 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             pass
 
     def closeEvent(self, event):
-        if self.terracoind_intf:
-            self.terracoind_intf.disconnect()
+        if self.crownd_intf:
+            self.crownd_intf.disconnect()
 
         if self.configModified():
             if self.queryDlg('Configuration modified. Save?',
@@ -298,11 +298,11 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
 
     def connsCfgChanged(self):
         """
-        If connections config is changed, we must apply the changes to the terracoind interface object
+        If connections config is changed, we must apply the changes to the crownd interface object
         :return: 
         """
         try:
-            self.terracoind_intf.apply_new_cfg()
+            self.crownd_intf.apply_new_cfg()
             self.updateControlsState()
         except Exception as e:
             self.errorMsg(str(e))
@@ -314,27 +314,27 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
 
     def on_connection_begin(self):
         """
-        Called just before establising connection to a terracoin RPC.
+        Called just before establising connection to a crown RPC.
         """
-        self.setStatus1Text('<b>RPC network status:</b> trying %s...' % self.terracoind_intf.get_active_conn_description(), 'black')
+        self.setStatus1Text('<b>RPC network status:</b> trying %s...' % self.crownd_intf.get_active_conn_description(), 'black')
 
     def on_connection_failed(self):
         """
         Called after failed connection attempt. There can be more attempts to connect to another nodes if there are 
         such in configuration. 
         """
-        self.setStatus1Text('<b>RPC network status:</b> failed connection to %s' % self.terracoind_intf.get_active_conn_description(), 'red')
+        self.setStatus1Text('<b>RPC network status:</b> failed connection to %s' % self.crownd_intf.get_active_conn_description(), 'red')
 
     def on_connection_finished(self):
         """
-        Called after connection to terracoin daemon sucessufully establishes.
+        Called after connection to crown daemon sucessufully establishes.
         """
         logging.debug("on_connection_finished")
-        self.setStatus1Text('<b>RPC network status:</b> OK (%s)' % self.terracoind_intf.get_active_conn_description(), 'green')
+        self.setStatus1Text('<b>RPC network status:</b> OK (%s)' % self.crownd_intf.get_active_conn_description(), 'green')
 
-    def checkTerracoindConnection(self, wait_for_check_finish=False, call_on_check_finished=None):
+    def checkCrowndConnection(self, wait_for_check_finish=False, call_on_check_finished=None):
         """
-        Connects do terracoin daemon if not connected before and returnes if it was successful.
+        Connects do crown daemon if not connected before and returnes if it was successful.
         :param wait_for_check_finish: True if function is supposed to wait until connection check is finished (process
             is executed in background)
         :param call_on_check_finished: ref to function to be called after connection test (successful or unsuccessful)
@@ -350,7 +350,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
 
         def wait_for_synch_finished_thread(ctrl):
             """
-            Thread waiting for terracoin daemon to finish synchronizing.
+            Thread waiting for crown daemon to finish synchronizing.
             """
             mtx = QMutex()
             cond = QWaitCondition()
@@ -358,12 +358,12 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 logging.info('wait_for_synch_finished_thread')
                 mtx.lock()
                 while not ctrl.finish:
-                    synced = self.terracoind_intf.issynchronized()
+                    synced = self.crownd_intf.issynchronized()
                     if synced:
-                        self.is_terracoind_syncing = False
+                        self.is_crownd_syncing = False
                         self.on_connection_finished()
                         break
-                    mnsync = self.terracoind_intf.mnsync()
+                    mnsync = self.crownd_intf.mnsync()
                     self.setMessage('Crownd is synchronizing: AssetID: %s, AssetName: %s' %
                                         (str(mnsync.get('AssetID', '')),
                                          str(mnsync.get('AssetName', ''))
@@ -371,39 +371,39 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                     cond.wait(mtx, 5000)
                 self.setMessage('')
             except Exception as e:
-                self.is_terracoind_syncing = False
-                self.terracoind_connection_ok = False
+                self.is_crownd_syncing = False
+                self.crownd_connection_ok = False
                 self.setMessage(str(e),
                                 style='{background-color:red;color:white;padding:3px 5px 3px 5px; border-radius:3px}')
             finally:
                 mtx.unlock()
-                self.wait_for_terracoind_synced_thread = None
+                self.wait_for_crownd_synced_thread = None
 
         def connect_thread(ctrl):
             """
-            Test connection to terracoin network inside a thread to avoid blocking GUI.
+            Test connection to crown network inside a thread to avoid blocking GUI.
             :param ctrl: control structure to communicate with WorkerThread object (not used here)
             """
             try:
-                synced = self.terracoind_intf.issynchronized()
-                self.terracoind_info = self.terracoind_intf.getinfo()
-                self.terracoind_connection_ok = True
+                synced = self.crownd_intf.issynchronized()
+                self.crownd_info = self.crownd_intf.getinfo()
+                self.crownd_connection_ok = True
                 if not synced:
                     logging.info("crownd not synced")
-                    if not self.is_terracoind_syncing and not (hasattr(self, 'wait_for_terracoind_synced_thread') and
-                                                                  self.wait_for_terracoind_synced_thread is not None):
-                        self.is_terracoind_syncing = True
-                        self.wait_for_terracoind_synced_thread = self.runInThread(wait_for_synch_finished_thread, (),
+                    if not self.is_crownd_syncing and not (hasattr(self, 'wait_for_crownd_synced_thread') and
+                                                                  self.wait_for_crownd_synced_thread is not None):
+                        self.is_crownd_syncing = True
+                        self.wait_for_crownd_synced_thread = self.runInThread(wait_for_synch_finished_thread, (),
                                                                              on_thread_finish=connect_finished)
                 else:
-                    self.is_terracoind_syncing = False
+                    self.is_crownd_syncing = False
                 self.setMessage('')
             except Exception as e:
                 err = str(e)
                 if not err:
                     err = 'Connect error: %s' % type(e).__name__
-                self.is_terracoind_syncing = False
-                self.terracoind_connection_ok = False
+                self.is_crownd_syncing = False
+                self.crownd_connection_ok = False
                 self.on_connection_failed()
                 self.setMessage(err,
                                 style='{background-color:red;color:white;padding:3px 5px 3px 5px; border-radius:3px}')
@@ -414,7 +414,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             """
             del self.check_conn_thread
             self.check_conn_thread = None
-            self.connecting_to_terracoind = False
+            self.connecting_to_crownd = False
             if call_on_check_finished:
                 call_on_check_finished()
             if event_loop:
@@ -423,12 +423,12 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         if self.config.is_config_complete():
             if not hasattr(self, 'check_conn_thread') or self.check_conn_thread is None:
 
-                if hasattr(self, 'wait_for_terracoind_synced_thread') and self.wait_for_terracoind_synced_thread is not None:
+                if hasattr(self, 'wait_for_crownd_synced_thread') and self.wait_for_crownd_synced_thread is not None:
                     if call_on_check_finished is not None:
-                        # if a thread waiting for terracoind to finish synchronizing is running, call the callback function
+                        # if a thread waiting for crownd to finish synchronizing is running, call the callback function
                         call_on_check_finished()
                 else:
-                    self.connecting_to_terracoind = True
+                    self.connecting_to_crownd = True
                     self.check_conn_thread = self.runInThread(connect_thread, (),
                                                               on_thread_finish=connect_finished)
                     if wait_for_check_finish:
@@ -436,8 +436,8 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         else:
             # configuration is not complete
             logging.warning("config not complete")
-            self.is_terracoind_syncing = False
-            self.terracoind_connection_ok = False
+            self.is_crownd_syncing = False
+            self.crownd_connection_ok = False
 
     @pyqtSlot(bool)
     def on_btnCheckConnection_clicked(self):
@@ -448,14 +448,14 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.btnRefreshMnStatus.setEnabled(True)
             self.btnActions.setEnabled(True)
 
-            if self.terracoind_connection_ok:
-                if self.is_terracoind_syncing:
+            if self.crownd_connection_ok:
+                if self.is_crownd_syncing:
                     self.infoMsg('Connection successful, but Crown daemon is synchronizing.')
                 else:
                     self.infoMsg('Connection successful.')
             else:
-                if self.terracoind_intf.last_error_message:
-                    self.errorMsg('Connection error: ' + self.terracoind_intf.last_error_message)
+                if self.crownd_intf.last_error_message:
+                    self.errorMsg('Connection error: ' + self.crownd_intf.last_error_message)
                 else:
                     self.errorMsg('Connection error')
 
@@ -464,7 +464,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.btnBroadcastMn.setEnabled(False)
             self.btnRefreshMnStatus.setEnabled(False)
             self.btnActions.setEnabled(False)
-            self.checkTerracoindConnection(call_on_check_finished=connection_test_finished)
+            self.checkCrowndConnection(call_on_check_finished=connection_test_finished)
         else:
             # configuration not complete: show config window
             if self.queryDlg("There is no (enabled) connections to RPC node in your configuration. Open configuration dialog?",
@@ -642,16 +642,16 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
 
     def hwScanForBip32Paths(self, addresses):
         """
-        Scans hardware wallet for bip32 paths of all Terracoin addresses passed in the addresses list.
-        :param addresses: list of Terracoin addresses to scan
-        :return: dict {terracoin_address: bip32_path}
+        Scans hardware wallet for bip32 paths of all Crown addresses passed in the addresses list.
+        :param addresses: list of Crown addresses to scan
+        :return: dict {crown_address: bip32_path}
         """
         def scan_for_bip32_thread(ctrl, addresses):
             """
             Function run inside a thread which purpose is to scan hawrware wallet
-            for a bip32 paths with given Terracoin addresses.
+            for a bip32 paths with given Crown addresses.
             :param cfg: Thread dialog configuration object.
-            :param addresses: list of Terracoin addresses to find bip32 path
+            :param addresses: list of Crown addresses to find bip32 path
             :return: 
             """
 
@@ -663,7 +663,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.connectHardwareWallet()
             if self.hw_client:
 
-                # get terracoin address of the parent
+                # get crown address of the parent
                 address_n = [2147483692,  # 44'
                              2147483731,  # 83'
                             ]
@@ -718,7 +718,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                                         'Current path: <span style="color:blue">%s</span><br>'
                                         % (paths_checked, paths_found, cur_bip32_path))
 
-                                    # first, find terracoin address in cache by bip32 path
+                                    # first, find crown address in cache by bip32 path
                                     addr_of_cur_path = b32cache.get(cur_bip32_path, None)
                                     if not addr_of_cur_path:
                                         addr_of_cur_path = hw_intf.get_address(self, address_n)
@@ -790,9 +790,9 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                                 mn_privkey = elems[2]
                                 mn_tx_hash = elems[3]
                                 mn_tx_idx = elems[4]
-                                mn_terracoin_addr = ''
+                                mn_crown_addr = ''
                                 if len(elems) > 5:
-                                    mn_terracoin_addr = elems[5]
+                                    mn_crown_addr = elems[5]
 
                                 def update_mn(in_mn):
                                     in_mn.name = mn_name
@@ -804,7 +804,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                                         in_mn.ip = mn_ipport
                                         in_mn.port = '13333'
                                     in_mn.privateKey = mn_privkey
-                                    in_mn.collateralAddress = mn_terracoin_addr
+                                    in_mn.collateralAddress = mn_crown_addr
                                     in_mn.collateralTx = mn_tx_hash
                                     in_mn.collateralTxIndex = mn_tx_idx
                                     in_mn.collateralBip32Path = ''
@@ -855,8 +855,8 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
 
                             if self.queryDlg(message=msg_text, buttons=QMessageBox.Yes | QMessageBox.No,
                                              default_button=QMessageBox.Yes) == QMessageBox.Yes:
-                                # scan all Terracoin addresses from imported masternodes for BIP32 path, starting from
-                                # first standard Terracoin BIP32 path
+                                # scan all Crown addresses from imported masternodes for BIP32 path, starting from
+                                # first standard Crown BIP32 path
 
                                 addresses_to_scan = []
                                 for mn in mns_imported:
@@ -1070,7 +1070,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             if retval == QMessageBox.No:
                 return
 
-        wif = terracoin_utils.generate_privkey()
+        wif = crown_utils.generate_privkey()
         self.curMasternode.privateKey = wif
         self.edtMnPrivateKey.setText(wif)
         self.curMnModified()
@@ -1078,7 +1078,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
     @pyqtSlot(bool)
     def on_btnHwBip32ToAddress_clicked(self):
         """
-        Convert BIP32 path to Terracoin address.
+        Convert BIP32 path to Crown address.
         :return: 
         """
         try:
@@ -1086,9 +1086,9 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             if not self.hw_client:
                 return
             if self.curMasternode and self.curMasternode.collateralBip32Path:
-                terracoin_addr = hw_intf.get_address(self, self.curMasternode.collateralBip32Path)
-                self.edtMnCollateralAddress.setText(terracoin_addr)
-                self.curMasternode.collateralAddress = terracoin_addr
+                crown_addr = hw_intf.get_address(self, self.curMasternode.collateralBip32Path)
+                self.edtMnCollateralAddress.setText(crown_addr)
+                self.curMasternode.collateralAddress = crown_addr
                 self.curMnModified()
         except HardwareWalletCancelException:
             if self.hw_client:
@@ -1099,7 +1099,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
     @pyqtSlot(bool)
     def on_btnHwAddressToBip32_clicked(self):
         """
-        Converts Terracoin address to BIP32 path, using hardware wallet.
+        Converts Crown address to BIP32 path, using hardware wallet.
         :return: 
         """
 
@@ -1130,8 +1130,8 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
     @pyqtSlot(bool)
     def on_btnBroadcastMn_clicked(self):
         """
-        Broadcasts information about configured Masternode within Terracoin network using Hwrdware Wallet for signing message
-        and a Terracoin daemon for relaying message.
+        Broadcasts information about configured Masternode within Crown network using hardware wallet for signing message
+        and a Crown daemon for relaying message.
         Building broadcast message is based on work of chaeplin (https://github.com/chaeplin/dashmnb)
         """
         if self.curMasternode:
@@ -1163,11 +1163,11 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         else:
             self.errorMsg("No masternode selected.")
 
-        self.checkTerracoindConnection(wait_for_check_finish=True)
-        if not self.terracoind_connection_ok:
+        self.checkCrowndConnection(wait_for_check_finish=True)
+        if not self.crownd_connection_ok:
             self.errorMsg("Connection to Crown daemon is not established.")
             return
-        if self.is_terracoind_syncing:
+        if self.is_crownd_syncing:
             self.warnMsg("Crown daemon to which you are connected is synchronizing. You have to wait "
                          "until it's finished.")
             return
@@ -1180,7 +1180,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 return
 
         try:
-            mn_privkey = terracoin_utils.wif_to_privkey(self.curMasternode.privateKey)
+            mn_privkey = crown_utils.wif_to_privkey(self.curMasternode.privateKey)
             if not mn_privkey:
                 self.errorMsg('Cannot convert masternode private key')
                 return
@@ -1191,8 +1191,8 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 return
 
             seq = 0xffffffff
-            block_count = self.terracoind_intf.getblockcount()
-            block_hash = self.terracoind_intf.getblockhash(block_count - 12)
+            block_count = self.crownd_intf.getblockcount()
+            block_hash = self.crownd_intf.getblockhash(block_count - 12)
             vintx = bytes.fromhex(self.curMasternode.collateralTx)[::-1].hex()
             vinno = int(self.curMasternode.collateralTxIndex).to_bytes(4, byteorder='big')[::-1].hex()
             vinsig = '00'
@@ -1223,11 +1223,11 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                         default_button=QMessageBox.Cancel, icon=QMessageBox.Warning) == QMessageBox.Cancel:
                     return
 
-            # check if there is 5000 TRC collateral
+            # check if there is 10000 CRW collateral
             msg_verification_problem = 'You can continue without verification step if you are sure, that ' \
                                        'TX ID/Index are correct.'
             try:
-                utxos = self.terracoind_intf.getaddressutxos([hw_collateral_address])
+                utxos = self.crownd_intf.getaddressutxos([hw_collateral_address])
                 found = False
                 utxo = []
                 for utxo in utxos:
@@ -1236,9 +1236,9 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                         found = True
                         break
                 if found:
-                    if utxo.get('satoshis', None) != 500000000000:
+                    if utxo.get('satoshis', None) != 1000000000000:
                         if self.queryDlg(
-                                message="Collateral transaction output should equal 500000000000 Satoshis (5000 TRC)"
+                                message="Collateral transaction output should equal 1000000000000 Satoshis (10000 CRW)"
                                         ", but its value is: %d Satoshis.\n\nDo you really want to continue?"
                                         % (utxo['satoshis']),
                                 buttons=QMessageBox.Yes | QMessageBox.Cancel,
@@ -1253,7 +1253,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                             default_button=QMessageBox.Cancel, icon=QMessageBox.Warning) == QMessageBox.Cancel:
                         return
 
-            except TerracoindIndexException as e:
+            except CrowndIndexException as e:
                 # likely indexing not enabled
                 if self.queryDlg(
                         message="Collateral transaction verification problem: %s."
@@ -1270,11 +1270,11 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                         default_button=QMessageBox.Cancel, icon=QMessageBox.Warning) == QMessageBox.Cancel:
                     return
 
-            collateral_in = terracoin_utils.num_to_varint(len(collateral_pubkey)).hex() + collateral_pubkey.hex()
-            delegate_in = terracoin_utils.num_to_varint(len(mn_pubkey) / 2).hex() + mn_pubkey
+            collateral_in = crown_utils.num_to_varint(len(collateral_pubkey)).hex() + collateral_pubkey.hex()
+            delegate_in = crown_utils.num_to_varint(len(mn_pubkey) / 2).hex() + mn_pubkey
             sig_time = int(time.time())
 
-            info = self.terracoind_intf.getinfo()
+            info = self.crownd_intf.getinfo()
             node_protocol_version = int(info['protocolversion'])
             if self.curMasternode.use_default_protocol_version or not self.curMasternode.protocol_version:
                 protocol_version = node_protocol_version
@@ -1299,29 +1299,29 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             work_protoversion = int(protocol_version).to_bytes(4, byteorder='big')[::-1].hex()
             last_ping_block_hash = bytes.fromhex(block_hash)[::-1].hex()
 
-            last_ping_serialize_for_sig = terracoin_utils.serialize_input_str(
+            last_ping_serialize_for_sig = crown_utils.serialize_input_str(
                 self.curMasternode.collateralTx,
                 self.curMasternode.collateralTxIndex,
                 seq,
                 '') + block_hash + str(sig_time)
 
-            r = terracoin_utils.ecdsa_sign(last_ping_serialize_for_sig, self.curMasternode.privateKey)
+            r = crown_utils.ecdsa_sign(last_ping_serialize_for_sig, self.curMasternode.privateKey)
             sig2 = (base64.b64decode(r).hex())
             logging.debug('Start MN message signature2: ' + sig2)
 
             work = vintx + vinno + vinsig + vinseq \
                    + ipv6map + collateral_in + delegate_in \
-                   + terracoin_utils.num_to_varint(len(sig1) / 2).hex() + sig1 \
+                   + crown_utils.num_to_varint(len(sig1) / 2).hex() + sig1 \
                    + work_sig_time + work_protoversion \
                    + vintx + vinno + vinsig + vinseq \
                    + last_ping_block_hash + work_sig_time \
-                   + terracoin_utils.num_to_varint(len(sig2) / 2).hex() + sig2
+                   + crown_utils.num_to_varint(len(sig2) / 2).hex() + sig2
 
             work = '01' + work
             if node_protocol_version >= 70208:
                 work = work + '0001000100'
 
-            ret = self.terracoind_intf.masternodebroadcast("decode", work)
+            ret = self.crownd_intf.masternodebroadcast("decode", work)
             if ret['overall'].startswith('Successfully decoded broadcast messages for 1 masternodes'):
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Information)
@@ -1333,7 +1333,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 if retval == QMessageBox.Cancel:
                     return
 
-                ret = self.terracoind_intf.masternodebroadcast("relay", work)
+                ret = self.crownd_intf.masternodebroadcast("relay", work)
 
                 match = re.search("relayed broadcast messages for (\d+) masternodes.*failed to relay (\d+), total 1",
                                   ret['overall'])
@@ -1377,9 +1377,9 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         and a protocol version.
         :return:
         """
-        if self.terracoind_connection_ok:
+        if self.crownd_connection_ok:
             collateral_id = masternode.collateralTx + '-' + masternode.collateralTxIndex
-            mns_info = self.terracoind_intf.get_masternodelist('full', collateral_id)
+            mns_info = self.crownd_intf.get_masternodelist('full', collateral_id)
             if len(mns_info):
                 protocol_version = mns_info[0].protocol
                 if isinstance(protocol_version, str):
@@ -1395,7 +1395,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         Get current masternode's extended status.
         """
 
-        if self.terracoind_connection_ok:
+        if self.crownd_connection_ok:
             collateral_id = self.curMasternode.collateralTx + '-' + self.curMasternode.collateralTxIndex
 
             if not self.curMasternode.collateralTx:
@@ -1404,9 +1404,9 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             if not self.curMasternode.collateralTxIndex:
                 return '<span style="color:red">Enter the collateral TX index</span>'
 
-            mns_info = self.terracoind_intf.get_masternodelist('full', data_max_age=120)  # read new data from the network
+            mns_info = self.crownd_intf.get_masternodelist('full', data_max_age=120)  # read new data from the network
                                                                                      # every 120 seconds
-            mn_info = self.terracoind_intf.masternodes_by_ident.get(collateral_id)
+            mn_info = self.crownd_intf.masternodes_by_ident.get(collateral_id)
             if mn_info:
                 if mn_info.lastseen > 0:
                     lastseen = datetime.datetime.fromtimestamp(float(mn_info.lastseen))
@@ -1431,7 +1431,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                     color = 'green'
                 else:
                     color = 'red'
-                enabled_mns_count = len(self.terracoind_intf.payment_queue)
+                enabled_mns_count = len(self.crownd_intf.payment_queue)
 
                 status = '<style>td {white-space:nowrap;padding-right:8px}' \
                          '.title {text-align:right;font-weight:bold}' \
@@ -1464,8 +1464,8 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         self.btnRefreshMnStatus.setEnabled(False)
         self.btnBroadcastMn.setEnabled(False)
 
-        self.checkTerracoindConnection(wait_for_check_finish=True, call_on_check_finished=enable_buttons)
-        if self.terracoind_connection_ok:
+        self.checkCrowndConnection(wait_for_check_finish=True, call_on_check_finished=enable_buttons)
+        if self.crownd_connection_ok:
             try:
                 status = self.get_masternode_status_description()
                 self.lblMnStatus.setText(status)
@@ -1522,14 +1522,14 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         """
         Shows tranfser funds window for address/path specified by the user.
         """
-        if not self.terracoind_intf.open():
+        if not self.crownd_intf.open():
             self.errorMsg('Crown daemon not connected')
         else:
             ui = send_payout_dlg.SendPayoutDlg([], self)
             ui.exec_()
 
     def executeTransferFundsDialog(self, src_addresses):
-        if not self.terracoind_intf.open():
+        if not self.crownd_intf.open():
             self.errorMsg('Crown daemon not connected')
         else:
             ui = send_payout_dlg.SendPayoutDlg(src_addresses, self)
@@ -1572,11 +1572,11 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
     @pyqtSlot(bool)
     def on_btnFindCollateral_clicked(self):
         """
-        Open dialog with list of utxos of collateral terracoin address.
+        Open dialog with list of utxos of collateral crown address.
         :return: 
         """
         if self.curMasternode and self.curMasternode.collateralAddress:
-            ui = FindCollateralTxDlg(self, self.terracoind_intf, self.curMasternode.collateralAddress)
+            ui = FindCollateralTxDlg(self, self.crownd_intf, self.curMasternode.collateralAddress)
             if ui.exec_():
                 tx, txidx = ui.getSelection()
                 if tx:
@@ -1592,5 +1592,5 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
 
     @pyqtSlot(bool)
     def on_btnProposals_clicked(self):
-        ui = ProposalsDlg(self, self.terracoind_intf)
+        ui = ProposalsDlg(self, self.crownd_intf)
         ui.exec_()
