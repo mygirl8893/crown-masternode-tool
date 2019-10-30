@@ -10,5 +10,5 @@ paramiko>=2.2.1
 requests>=2.18.4
 mnemonic>=0.18
 simplejson
-cryptography
+cryptography>=2.5
 -e git+https://github.com/Bertrand256/btchip-python#egg=btchip-python

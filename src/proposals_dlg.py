@@ -1233,7 +1233,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             self.display_message("")
 
     def read_external_attibutes(self, proposals):
-        """Method reads additional proposal attributes from an external source such as services.crown.io
+        """Method reads additional proposal attributes from an external source such as services.crownplatform.com
         :return True if proposals' external attributes has been updated.
         """
         self.display_message("Reading proposal external attributes, please wait...")
@@ -1327,7 +1327,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
 
                     if exceptions_occurred:
                         self.errorMsg('Error(s) occurred while retrieving proposals external data from '
-                                      'services.crown.io.')
+                                      'services.crownplatform.com.')
 
         except CloseDialogException:
             logging.info('Closing the dialog.')
@@ -1628,7 +1628,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
 
         proposals = []
         if self.main_wnd.config.read_proposals_external_attributes:
-            # select proposals for which we read additional data from external sources as services.crown.io
+            # select proposals for which we read additional data from external sources as services.crownplatform.com
             for prop in self.proposals:
                 if not prop.ext_attributes_loaded:
                     proposals.append(prop)

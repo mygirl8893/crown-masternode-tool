@@ -1,65 +1,65 @@
-## Configuration procedure for a new masternode
+# Configuration procedure for a new masternode
 
 This scenario is intended for those who are configuring their masternode from a clean start (or are not transferring the existing configuration).
 
 Before describing the individual steps, the following prerequisites apply:
-  * You have a server with a static public IP address, on which you have installed the *Terracoin daemon* (*terracoind*) software.
+  * You have a server with a static public IP address, on which you have installed the *Crown daemon* (*crownd*) software.
   * The server is running a Linux operating system. While other operating systems may work, this guide will assume you are following best practices and using the most popular and supported system available.
   * You have access to the server over SSH.
-  * *terracoind* has been installed in the home directory of the user which you use to log in to the server.
+  * *crownd* has been installed in the home directory of the user which you use to log in to the server.
 
-### Sending 5000 TRC to the address controlled by your hardware wallet
+## Sending 10,000 Crown to the address controlled by your hardware wallet
 
-#### Step 1
+### Step 1
 
-The procedure to send 5000 TRC to a hardware wallet is described [here](config-masternodes-a.md#sending-5000-terracoin-to-the-hardware-wallet-address).
+The procedure to send 10,000 Crown to a hardware wallet is described [here](config-masternodes-a.md#sending-10,000-crown-to-the-hardware-wallet-address).
 
-### Filling in the masternode configuration fields
+## Filling in the masternode configuration fields
 
-#### Step 2
+### Step 2
 
-Run *Terracoin Masternode Tool* and click the `New` button to enter *edit* mode. If you don't have any masternode entries in the current configuration, *edit* mode is activated automatically.
+Run *Crown Masternode Tool* and click the `New` button to enter *edit* mode. If you don't have any masternode entries in the current configuration, *edit* mode is activated automatically.
 
-#### Step 3
+### Step 3
 
 Fill in the fields:
   * `Name`: name/label of your masternode (can be any alphanumeric string).
-  * `IP`: the IP address of the *terracoind* server.
-  * `port`: the TCP port number on which *terracoind* is listening for incoming connections. You should use the value of the `rpcport` parameter from the `terracoin.conf` file. The default port value is `13333`.
+  * `IP`: the IP address of the *crownd* server.
+  * `port`: the TCP port number on which *crownd* is listening for incoming connections. You should use the value of the `rpcport` parameter from the `crown.conf` file. The default port value is `9341`.
 
-#### Step 4
+### Step 4
 
 Click the `Generate new` button on the right side of the `MN private key` field to generate a new masternode *private key*.
 
-  > Masternode **private keys**. Some users think that the masternode private key is somehow associated with the private key of the 5000 TRC collateral, but in fact, they have no relationship. The masternode private key is generated independently and is only used in the process of signing the `start masternode` message and voting on proposals, and as such it is not particularly dangerous if it falls into the wrong hands. For this reason, the application includes a feature to automatically generate masternode private keys by simply clicking a button, thus avoiding a requirement to use *Terracoin Core* for this purpose. From a technical point of view, a masternode private key is a normal private key in the *Terracoin WIF uncompressed* format.
+  > Masternode **private keys**. Some users think that the masternode private key is somehow associated with the private key of the 10,000 Crown collateral, but in fact, they have no relationship. The masternode private key is generated independently and is only used in the process of signing the `start masternode` message and voting on proposals, and as such it is not particularly dangerous if it falls into the wrong hands. For this reason, the application includes a feature to automatically generate masternode private keys by simply clicking a button, thus avoiding a requirement to use *Crown Core* for this purpose. From a technical point of view, a masternode private key is a normal private key in the *Crown WIF uncompressed* format.
 
-#### Step 5
+### Step 5
 
 Enter information related to the collateral as described [here](config-masternodes-a.md#entering-information-on-the-collateral).  
 ![New masternode configuration steps](img/conf-masternodes-b-1.png)
 
-### Changing the configuration of your Terracoin daemon
+## Changing the configuration of your Crown daemon
 
-As part of the procedure described above, you generated a new masternode private key, which must now be transferred to your *Terracoin daemon* configuration file on the remote server.
+As part of the procedure described above, you generated a new masternode private key, which must now be transferred to your *Crown daemon* configuration file on the remote server.
 
-#### Step 6
+### Step 6
 
-Log in to the server running *terracoind* using your preferred SSH terminal client ([PuTTY](https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html) on Windows, for example), and then:
+Log in to the server running *crownd* using your preferred SSH terminal client ([PuTTY](https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html) on Windows, for example), and then:
 
-  * Open the `~/.terracoincore/terracoin.conf` file with your preferred Linux text editor, for example: `nano ~/.terracoincore/terracoin.conf`
+  * Open the `~/.crown/crown.conf` file with your preferred Linux text editor, for example: `nano ~/.crown/crown.conf`
 
-  * Set the `masternodeprivkey` parameter to match the masternode private key you generated in [Step 5](#step-5) . This key is the mechanism by which a link is established between the wallet holding the collateral and sending the start command, and the target *terracoind* instance which should operate as a masternode.  
+  * Set the `masternodeprivkey` parameter to match the masternode private key you generated in [Step 5](#step-5) . This key is the mechanism by which a link is established between the wallet holding the collateral and sending the start command, and the target *crownd* instance which should operate as a masternode.  
       ![Masternode privkey](img/conf-masternodes-b-2.png)
 
   * Save the file and exit the editor.
 
-  * Restart *terracoind*:
+  * Restart *crownd*:
   ```bash
    $ cd ~
-   $ ./terracoin-cli stop
-   $ ./terracoind
+   $ ./crown-cli stop
+   $ ./crownd
   ```
 
-### Next steps
+## Next steps
 
 Before you continue with the last step of the whole configuration (sending the `start masternode` message), make sure that the number of confirmations for the collateral transaction is greater than or equal to 15 (this can be verified in the `Lookup` dialog). If less than 15 confirmations exist, you will not be able to start your masternode successfully. Once this final requirement has been met, you can finally perform the [start masternode](../README.md#starting-a-masternode) operation.

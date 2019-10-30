@@ -78,7 +78,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
     def setupUi(self):
         ui_main_dlg.Ui_MainWindow.setupUi(self, self)
         self.setWindowTitle(APP_NAME_LONG + ' by walkjivefly' + (
-            ' (v. ' + self.config.app_version + ')' if self.config.app_version else ''))
+            ' (v' + self.config.app_version + ')' if self.config.app_version else ''))
 
         SshPassCache.set_parent_window(self)
         self.inside_setup_ui = True
@@ -802,7 +802,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                                         in_mn.port = ipelems[1]
                                     else:
                                         in_mn.ip = mn_ipport
-                                        in_mn.port = '13333'
+                                        in_mn.port = '9340'
                                     in_mn.privateKey = mn_privkey
                                     in_mn.collateralAddress = mn_crown_addr
                                     in_mn.collateralTx = mn_tx_hash

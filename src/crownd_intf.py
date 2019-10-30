@@ -285,7 +285,7 @@ class CrowndSSH(object):
             config = {}
             if pid:
                 crownd_running = True
-                # using crownd pid find its executable path and then .crowncore directory and finally crown.conf file
+                # using crownd pid find its executable path and then .crown directory and finally crown.conf file
                 executables = self.remote_command('ls -l /proc/' + str(pid) + '/exe')
                 if executables and len(executables) >= 1:
                     elems = executables[0].split('->')

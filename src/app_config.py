@@ -83,7 +83,7 @@ class AppConfig(object):
 
         self.block_explorer_tx = 'https://insight-01.crownplatform.com/tx/%TXID%'
         self.block_explorer_addr = 'https://insight-01.crownplatform.com/%ADDRESS%'
-        self.crown_services_proposal_api = 'https://services.crown.io/api/v1/proposal?hash=%HASH%'
+        self.crown_services_proposal_api = 'https://services.crownplatform.com/api/v1/proposal?hash=%HASH%'
 
         self.check_for_updates = True
         self.backup_config_file = True
@@ -107,7 +107,7 @@ class AppConfig(object):
         self.app_last_version = ''
 
     def init(self, app_path):
-        """ Initialize configuration after openning the application. """
+        """ Initialize configuration after opening the application. """
         self.app_path = app_path
 
         try:
