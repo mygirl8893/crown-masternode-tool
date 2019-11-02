@@ -115,6 +115,7 @@ class Proposal(AttrsProtected):
         # voting_status:
         #   1: voting in progress, funding
         #   2: voting in progress, no funding
+        #   3: voting complete, funding unknown
         self.voting_status = None
 
         self.name_col_widget = None
@@ -127,7 +128,7 @@ class Proposal(AttrsProtected):
     def set_value(self, name, value):
         """
         Sets value for a specified Proposal column.
-        :returns True, if new value is different that old value
+        :returns True, if new value is different than old value
         """
         for col in self.columns:
             if col.name == name:
@@ -236,6 +237,9 @@ class Proposal(AttrsProtected):
                 self.voting_status = 2  # needs additional votes
                 self.set_value('voting_status_caption', 'Needs additional %d votes' % (int(mns_count * 0.1) -
                                                                                        abs_yes_count))
+        else:
+            self.voting_status = 3  # Historical information is not recorded
+            self.set_value('voting_status_caption', 'Unavailable')
 
 class VotingMasternode(AttrsProtected):
     def __init__(self, masternode, masternode_config):
@@ -271,7 +275,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             ProposalColumn('block_end', 'Block End', True),
             ProposalColumn('total_payment_count', 'Months', True),
             ProposalColumn('remaining_payment_count', 'Months Remaining', True),
-            ProposalColumn('payment_address', 'Payment Address', False),
+            ProposalColumn('payment_address', 'Payment Address', True),
             ProposalColumn('ratio', 'Ratio', False),
             ProposalColumn('yes_count', "Yes Count", True),
             ProposalColumn('no_count', 'No Count', True),
@@ -284,14 +288,15 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             ProposalColumn('f_valid', 'fValid', False),
             ProposalColumn('no', 'No', True),
             ProposalColumn('title', 'Title', True),
-            ProposalColumn('owner', 'Owner', True),
+            ProposalColumn('owner', 'Owner', False),
             ProposalColumn('voting_status_caption', 'Voting Status', True),
             ProposalColumn('active', 'Active', True),
-            ProposalColumn('current_month', 'Current Month', True),
-            ProposalColumn('absolute_yes_count', 'Absolute Yes Count', True),
+            ProposalColumn('current_month', 'Current Month', False),
+            ProposalColumn('absolute_yes_count', 'Absolute Yes Count', False),
             ProposalColumn('payment_start', 'Payment Start', True),
             ProposalColumn('payment_end', 'Payment End', True),
-            ProposalColumn('creation_time', 'Creation Time', True)
+            ProposalColumn('creation_time', 'Creation Time', True),
+            ProposalColumn('fCachedDelete', 'fCachedDelete', False)
         ]
         self.vote_columns_by_mn_ident = {}
         self.proposals = []
@@ -396,6 +401,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     reset_columns_order = True
             except:
                 pass
+
 
             """ Read configuration of grid columns such as: display order, visibility. Also read configuration
              of dynamic columns: when user decides to display voting results of a masternode, which is not 
@@ -806,7 +812,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             rows_added = False
 
             # reset marker value in all existing Proposal object - we'll use it to check which
-            # of prevoiusly read proposals do not exist anymore
+            # of previously read proposals do not exist anymore
             for prop in self.proposals:
                 prop.marker = False
                 prop.modified = False  # all modified proposals will be saved to DB cache
@@ -889,9 +895,10 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                                 " block_end, total_payment_count, remaining_payment_count,"
                                                 " payment_address, ratio, yes_count, no_count, absolute_yes_count,"
                                                 " abstain_count, total_payment, monthly_payment, is_established,"
-                                                " is_valid, is_valid_reason, f_valid, cmt_active, cmt_create_time,"
+                                                " is_valid, is_valid_reason, f_valid, payment_start, payment_end,"
+                                                " cmt_active, cmt_create_time,"
                                                 " cmt_deactivation_time, cmt_voting_last_read_time)"
-                                                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
+                                                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,??,?,?,?,?,?,0)",
                                                 (prop.get_value('name'),
                                                  prop.get_value('url'),
                                                  prop.get_value('hash'),
@@ -912,6 +919,8 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                                  prop.get_value('is_valid'),
                                                  prop.get_value('is_valid_reason'),
                                                  prop.get_value('f_valid'),
+                                                 prop.get_value('payment_start').strftime('%Y-%m-%d %H:%M:%S'),
+                                                 prop.get_value('payment_end').strftime('%Y-%m-%d %H:%M:%S'),
                                                  1,
                                                  datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                                  None))
