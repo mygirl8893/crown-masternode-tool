@@ -850,6 +850,8 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     prop.set_value('absolute_yes_count', int(prop_raw['Yeas']) - int(prop_raw['Nays']))
                     prop.apply_values(self.masternodes, self.last_superblock_time, self.next_superblock_time)
                     if is_new:
+                        creation_txn = self.crownd_intf.getrawtransaction(prop_raw['FeeHash'], 1)
+                        prop.set_value('creation_time', datetime.datetime.fromtimestamp(creation_txn['time']))
                         self.proposals.append(prop)
                         self.proposals_by_hash[prop.get_value('hash')] = prop
                         rows_added = True
@@ -1148,7 +1150,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                 for fix_row in cur_fix.fetchall():
                                     cur_fix_upd.execute('UPDATE VOTING_RESULTS set proposal_id=? where proposal_id=?',
                                                         (row[19], fix_row[0]))
-                                    cur_fix_upd.execute('DELETE FROM PROPOSALS WHERE id=?', (fix_row[0],))
+                                    cur_fix_upd.execute('DELETE FROM PROPOSALS WHERE id=?', (fix_row[0]))
                                     data_modified = True
                                     logging.warning('Deleted duplicated proposal from DB. ID: %s, HASH: %s' %
                                                     (str(fix_row[0]), row[12]))
@@ -1383,7 +1385,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         cur.execute("SELECT proposal_id, voting_time, voting_result "
                                     "FROM VOTING_RESULTS vr WHERE masternode_ident=? AND EXISTS "
                                     "(SELECT 1 FROM PROPOSALS p where p.id=vr.proposal_id and p.cmt_active=1)",
-                                    (mn_ident,))
+                                    (mn_ident))
                         for row in cur.fetchall():
                             if self.finishing:
                                 raise CloseDialogException
@@ -1457,41 +1459,36 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                 raise CloseDialogException
 
                             v = votes[v_key]
-                            match = re.search("CTxIn\(COutPoint\(([A-Fa-f0-9]+)\s*\,\s*(\d+).+\:(\d+)\:(\w+)", v)
-                            if len(match.groups()) == 4:
-                                mn_ident = match.group(1) + '-' + match.group(2)
-                                voting_timestamp = int(match.group(3))
-                                voting_time = datetime.datetime.fromtimestamp(voting_timestamp)
-                                voting_result = match.group(4)
-                                mn = self.masternodes_by_ident.get(mn_ident)
+                            mn_ident = v_key
+                            voting_timestamp = int(v['nTime'])
+                            voting_time = datetime.datetime.fromtimestamp(voting_timestamp)
+                            voting_result = v['Vote']
+                            mn = self.masternodes_by_ident.get(mn_ident)
 
-                                if voting_timestamp > cur_vote_max_date:
-                                    cur_vote_max_date = voting_timestamp
+                            if voting_timestamp > cur_vote_max_date:
+                                cur_vote_max_date = voting_timestamp
 
-                                if voting_timestamp >= (last_vote_max_date - 3600) or force_reload_all:
-                                    # check if vote exists in the database
-                                    if cur:
-                                        tm_begin = time.time()
-                                        cur.execute("SELECT id, proposal_id from VOTING_RESULTS WHERE hash=?",
-                                                    (v_key,))
+                            if voting_timestamp >= (last_vote_max_date - 3600) or force_reload_all:
+                                # check if vote exists in the database
+                                if cur:
+                                    tm_begin = time.time()
+                                    cur.execute("SELECT id, proposal_id from VOTING_RESULTS WHERE hash=?",
+                                                (v_key))
 
-                                        found = False
-                                        for row in cur.fetchall():
-                                            if row[1] == prop.db_id:
-                                                found = True
-                                                break
+                                    found = False
+                                    for row in cur.fetchall():
+                                        if row[1] == prop.db_id:
+                                            found = True
+                                            break
 
-                                        db_oper_duration += (time.time() - tm_begin)
-                                        db_oper_count += 1
-                                        if not found:
-                                            votes_added.append((prop, mn, voting_time, voting_result, mn_ident, v_key))
-                                    else:
-                                        # no chance to check whether record exists in the DB, so assume it's not
-                                        # to have it displayed on the grid
+                                    db_oper_duration += (time.time() - tm_begin)
+                                    db_oper_count += 1
+                                    if not found:
                                         votes_added.append((prop, mn, voting_time, voting_result, mn_ident, v_key))
-
-                            else:
-                                logging.warning('Proposal %s, parsing unsuccessful for voting: %s' % (prop.hash, v))
+                                else:
+                                    # no chance to check whether record exists in the DB, so assume it's not
+                                    # to have it displayed on the grid
+                                    votes_added.append((prop, mn, voting_time, voting_result, mn_ident, v_key))
 
                         proposals_updated.append(prop)
 
@@ -1563,7 +1560,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         logging.info('DB calls duration (stage 2): %s' % str(db_oper_duration))
 
                         if cur_vote_max_date > last_vote_max_date:
-                            # save max vot date to the DB
+                            # save max vote date to the DB
                             db_modified = True
                             cur.execute("UPDATE LIVE_CONFIG SET value=? WHERE symbol=?",
                                         (cur_vote_max_date, CFG_PROPOSALS_VOTES_MAX_DATE))
