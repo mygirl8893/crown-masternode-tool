@@ -7,7 +7,6 @@ import binascii
 import bitcoin
 import base58
 
-
 # Bitcoin opcodes used in the application
 OP_DUP = b'\x76'
 OP_HASH160 = b'\xA9'
@@ -224,5 +223,3 @@ def extract_pkh_from_locking_script(script):
             else:
                 raise Exception('Non-standard public key hash length (should be 20)')
     raise Exception('Non-standard locking script type (should be P2PKH)')
-
-

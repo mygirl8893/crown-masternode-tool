@@ -99,7 +99,7 @@ class DBCache(object):
 
     def create_structures(self):
         cur = self.db_conn.cursor()
-        # create structires for masternodes data:
+        # create structures for masternodes data:
         cur.execute("CREATE TABLE IF NOT EXISTS MASTERNODES(id INTEGER PRIMARY KEY, ident TEXT, status TEXT,"
                     " protocol TEXT, payee TEXT, last_seen INTEGER, active_seconds INTEGER,"
                     " last_paid_time INTEGER, last_paid_block INTEGER, ip TEXT,"
@@ -118,33 +118,6 @@ class DBCache(object):
                     " cmt_voting_last_read_time INTEGER,"
                     " ext_attributes_loaded INTEGER, owner TEXT, title TEXT)")
         cur.execute("CREATE INDEX IF NOT EXISTS IDX_PROPOSALS_HASH ON PROPOSALS(hash)")
-
-        # upgrade schema to v 0.9.11:
-        cur.execute("PRAGMA table_info(PROPOSALS)")
-        columns = cur.fetchall()
-        prop_owner_exists = False
-        prop_title_exists = False
-        ext_attributes_loaded_exists = False
-        for col in columns:
-            if col[1] == 'owner':
-                prop_owner_exists = True
-            elif col[1] == 'title':
-                prop_title_exists = True
-            elif col[1] == 'ext_attributes_loaded':
-                ext_attributes_loaded_exists = True
-            if prop_owner_exists and prop_title_exists and ext_attributes_loaded_exists:
-                break
-        if not ext_attributes_loaded_exists:
-            # column for saving information whether additional attributes has been read from external sources
-            # like services.crownplatform.com (1: yes, 0: no)
-            cur.execute("ALTER TABLE PROPOSALS ADD COLUMN ext_attributes_loaded INTEGER")
-        if not prop_owner_exists:
-            # proposal's owner from an external source like services.crownplatform.com
-            cur.execute("ALTER TABLE PROPOSALS ADD COLUMN owner TEXT")
-        if not prop_title_exists:
-            # proposal's title from an external source like services.crownplatform.com
-            cur.execute("ALTER TABLE PROPOSALS ADD COLUMN title TEXT")
-
         cur.execute("CREATE TABLE IF NOT EXISTS VOTING_RESULTS(id INTEGER PRIMARY KEY, proposal_id INTEGER,"
                     " masternode_ident TEXT, voting_time TEXT, voting_result TEXT,"
                     "hash TEXT)")

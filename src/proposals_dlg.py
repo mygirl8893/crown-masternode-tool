@@ -29,6 +29,7 @@ import app_cache
 import app_utils
 import wnd_utils as wnd_utils
 import crown_utils
+#import crownd_intf
 from columns_cfg_dlg import ColumnsConfigDlg
 from common import AttrsProtected
 from crownd_intf import CrowndIndexException
@@ -199,7 +200,7 @@ class Proposal(AttrsProtected):
         days = (payment_end - payment_start) / 86400
         payment_months = floor(days / 30)
 
-        # calculate number of payment-months that passed already fot the proposal
+        # calculate number of payment-months that passed already for the proposal
         if time.time() > payment_end:
             cur_month = payment_months
         else:
@@ -208,13 +209,13 @@ class Proposal(AttrsProtected):
             if days < 0:
                 cur_month = 0
             else:
-                cur_month = floor(days/28.8)
+                cur_month = floor(days / 30)
 
-        self.set_value('months', payment_months)
+        self.set_value('total_payment_count', payment_months)
         self.set_value('current_month', cur_month)
         amt = self.get_value('monthly_payment')
         if amt is not None:
-            self.set_value('monthly_payment_total', amt * payment_months)
+            self.set_value('total_payment', amt * payment_months)
 
         if not self.get_value('title'):
             # if title value is not set (it's an external attribute, from Crown Services) then copy value from the
@@ -262,33 +263,35 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         self.crownd_intf = crownd_intf
         self.db_intf = parent.config.db_intf
         self.columns = [
-            ProposalColumn('no', 'No', True),
             ProposalColumn('name', 'Name', False),
-            ProposalColumn('title', 'Title', True),
             ProposalColumn('url', 'URL', False),
             ProposalColumn('hash', 'Hash', False),
             ProposalColumn('fee_hash', 'Fee Hash', False),
-            ProposalColumn('owner', 'Owner', True),
-            ProposalColumn('voting_status_caption', 'Voting Status', True),
-            ProposalColumn('active', 'Active', True),
-            ProposalColumn('monthly_payment', 'Amount', True),
-            ProposalColumn('months', 'Months', True),
-            ProposalColumn('total_payment', 'Total Amount', True),  # payment_amount * months
-            ProposalColumn('current_month', 'Current Month', True),
-            ProposalColumn('absolute_yes_count', 'Absolute Yes Count', True),
+            ProposalColumn('block_start', 'Block Start', True),
+            ProposalColumn('block_end', 'Block End', True),
+            ProposalColumn('total_payment_count', 'Months', True),
+            ProposalColumn('remaining_payment_count', 'Months Remaining', True),
+            ProposalColumn('payment_address', 'Payment Address', False),
+            ProposalColumn('ratio', 'Ratio', False),
             ProposalColumn('yes_count', "Yes Count", True),
             ProposalColumn('no_count', 'No Count', True),
             ProposalColumn('abstain_count', 'Abstain Count', True),
-            ProposalColumn('payment_start', 'Payment Start', True),
-            ProposalColumn('payment_end', 'Payment End', True),
-            ProposalColumn('block_start', 'Block Start', True),
-            ProposalColumn('block_end', 'Block End', True),
-            ProposalColumn('payment_address', 'Payment Address', False),
-            ProposalColumn('creation_time', 'Creation Time', True),
+            ProposalColumn('total_payment', 'Total Amount', True),
+            ProposalColumn('monthly_payment', 'Amount', True),
             ProposalColumn('is_established', 'IsEstablished', False),
             ProposalColumn('is_valid', 'IsValid', False),
-            ProposalColumn('IsValidReason', 'IsValidReason', False),
-            ProposalColumn('fValid', 'fValid', False)
+            ProposalColumn('is_valid_reason', 'IsValidReason', False),
+            ProposalColumn('f_valid', 'fValid', False),
+            ProposalColumn('no', 'No', True),
+            ProposalColumn('title', 'Title', True),
+            ProposalColumn('owner', 'Owner', True),
+            ProposalColumn('voting_status_caption', 'Voting Status', True),
+            ProposalColumn('active', 'Active', True),
+            ProposalColumn('current_month', 'Current Month', True),
+            ProposalColumn('absolute_yes_count', 'Absolute Yes Count', True),
+            ProposalColumn('payment_start', 'Payment Start', True),
+            ProposalColumn('payment_end', 'Payment End', True),
+            ProposalColumn('creation_time', 'Creation Time', True)
         ]
         self.vote_columns_by_mn_ident = {}
         self.proposals = []
@@ -322,6 +325,23 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         self.current_chart_type = -1  # converted from UI radio buttons:
                                       #   1: incremental by date, 2: summary, 3: vote change
         self.setupUi()
+
+    def time_of_block(self, height):
+        """
+        Find or calculate the actual or estimated epoch time of a block.
+        :param height: height of the block you want the creation time for
+        :return: epoch time of the block
+        """
+        last_block = self.crownd_intf.getblockcount()
+        if height <= last_block:
+            hash = self.crownd_intf.getblockhash(height)
+            header = self.crownd_intf.getblockheader(hash)
+            block_time = header['time']
+        else:
+            delta_seconds = (height - last_block) * 60
+            block_time = int(time.time()) + delta_seconds
+
+        return block_time
 
     def setupUi(self):
         try:
@@ -676,7 +696,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     except CloseDialogException:
                         pass
                     except Exception as e:
-                        logging.exception('Exception while realoading proposal external attributes')
+                        logging.exception('Exception while reloading proposal external attributes')
                         self.errorMsg('Error while retrieving proposals data: ' + str(e))
                     finally:
                         self.db_intf.release_cursor()
@@ -817,15 +837,17 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     prop.set_value('payment_address', prop_raw["PaymentAddress"])
                     prop.set_value('ratio', clean_float(prop_raw['Ratio']))
                     prop.set_value('yes_count', int(prop_raw['Yeas']))
-                    prop.set_value('no_count', int(prop_raw['NoCount']))
-                    prop.set_value('absolute_yes_count', int(prop_raw['Yeas']) - int(prop_raw['Nays']))
+                    prop.set_value('no_count', int(prop_raw['Nays']))
                     prop.set_value('abstain_count', int(prop_raw['Abstains']))
-                    prop.set_value('total_amount', clean_float(prop_raw['TotalPayment']))
+                    prop.set_value('total_payment', clean_float(prop_raw['TotalPayment']))
                     prop.set_value('monthly_payment', clean_float(prop_raw['MonthlyPayment']))
-                    prop.set_value('fIsEstablished', prop_raw['IsEstablished'])
-                    prop.set_value('fIsValid', prop_raw['IsValid'])
-                    prop.set_value('IsValidReason', prop_raw['IsValidReason'])
-                    prop.set_value('fValid', prop_raw['fValid'])
+                    prop.set_value('is_established', prop_raw['IsEstablished'])
+                    prop.set_value('is_valid', prop_raw['IsValid'])
+                    prop.set_value('is_valid_reason', prop_raw['IsValidReason'])
+                    prop.set_value('f_valid', prop_raw['fValid'])
+                    prop.set_value('payment_start', datetime.datetime.fromtimestamp(self.time_of_block(prop.get_value('block_start'))))
+                    prop.set_value('payment_end', datetime.datetime.fromtimestamp(self.time_of_block(prop.get_value('block_end'))))
+                    prop.set_value('absolute_yes_count', int(prop_raw['Yeas']) - int(prop_raw['Nays']))
                     prop.apply_values(self.masternodes, self.last_superblock_time, self.next_superblock_time)
                     if is_new:
                         self.proposals.append(prop)
@@ -866,7 +888,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                                 " payment_address, ratio, yes_count, no_count, absolute_yes_count,"
                                                 " abstain_count, total_payment, monthly_payment, is_established,"
                                                 " is_valid, is_valid_reason, f_valid, cmt_active, cmt_create_time,"
-                                                "cmt_deactiviation_time, cmt_voting_last_read_time"
+                                                " cmt_deactivation_time, cmt_voting_last_read_time)"
                                                 " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
                                                 (prop.get_value('name'),
                                                  prop.get_value('url'),
@@ -1005,10 +1027,10 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         self.display_message('Reading governance data, please wait...')
 
                         # get the date-time of the next superblock and calculate the date-time of the last one
+                        # superblocks occur every 43200 blocks (approximately 30 days)
                         sb_next = self.crownd_intf.mnbudget('nextblock')
                         sb_last = sb_next - 43200
 
-                        # superblocks occur every 43200 blocks (approximately 30 days)
                         cur_block = self.crownd_intf.getblockcount()
 
                         sb_last_hash = self.crownd_intf.getblockhash(sb_last)
@@ -1018,14 +1040,14 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         if cur_block > 0 and cur_block <= sb_next:
                             cur_hash = self.crownd_intf.getblockhash(cur_block)
                             cur_bh = self.crownd_intf.getblockheader(cur_hash)
-                            self.next_superblock_time = cur_bh['time'] + (sb_next - cur_block) * 2 * 60
+                            self.next_superblock_time = cur_bh['time'] + (sb_next - cur_block) * 60
 
                         if self.next_superblock_time == 0:
-                            self.next_superblock_time = last_bh['time'] + (sb_next - sb_last) * 2 * 60
+                            self.next_superblock_time = last_bh['time'] + (sb_next - sb_last) * 60
                         deadline_block = sb_next - ((3 * 24 * 60) / 2)
                         self.voting_deadline_passed = deadline_block <= cur_block < sb_next
 
-                        self.next_voting_deadline = self.next_superblock_time - (2057 * 2 * 60)
+                        self.next_voting_deadline = self.next_superblock_time - (2880 * 60)
                         self.next_voting_deadline -= time.timezone  # add a timezone correction
                         self.next_superblock_time -= time.timezone
                         next_sb_dt = datetime.datetime.utcfromtimestamp(self.next_superblock_time)
@@ -1387,7 +1409,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
     def read_voting_from_network(self, force_reload_all, proposals):
         """
         Retrieve from a Crown daemon voting results for all defined masternodes, for all visible Proposals.
-        :param force_reload_all: force reloading all votes and makre sure if a db cache contains all of them,
+        :param force_reload_all: force reloading all votes and make sure if a db cache contains all of them,
                if False, read only votes posted after last time when votes were read from the network
         :param proposals: list of proposals, which votes will be retrieved
         :return:
@@ -1796,7 +1818,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                 if not owner:
                     owner = "&lt;Unknown&gt;"
 
-                months = prop.get_value('months')
+                months = prop.get_value('total_payment_count')
                 if months == 1:
                     months_str = '1 month'
                 else:
@@ -1895,7 +1917,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         str(prop.get_value('abstain_count')),
                         self.main_wnd.config.to_string(prop.get_value('monthly_payment')),
                         months_str,
-                        self.main_wnd.config.to_string(prop.get_value('monthly_payment_total')),
+                        self.main_wnd.config.to_string(prop.get_value('total_payment')),
                         get_date_str(prop.get_value('payment_start')),
                         get_date_str(prop.get_value('payment_end')),
                         payment_addr,
@@ -2740,7 +2762,7 @@ class ProposalsModel(QAbstractTableModel):
 
                     elif role == Qt.TextAlignmentRole:
                         if col.name in ('monthly_payment', 'total_payment', 'absolute_yes_count', 'yes_count',
-                                        'no_count', 'abstain_count', 'months', 'current_month'):
+                                        'no_count', 'abstain_count', 'total_payment_count', 'current_month'):
                             return Qt.AlignRight
 
                     elif role == Qt.FontRole:
