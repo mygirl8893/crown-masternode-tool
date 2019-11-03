@@ -14,7 +14,7 @@ import threading
 import time
 import codecs
 from functools import partial
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtWidgets, QtGui, QtChart, QtCore
 from PyQt5.QtChart import QChart, QChartView, QLineSeries, QDateTimeAxis, QValueAxis, QBarSet, QBarSeries, \
     QBarCategoryAxis
 from PyQt5.QtCore import Qt, pyqtSlot, QVariant, QAbstractTableModel, QSortFilterProxyModel, \
@@ -117,7 +117,7 @@ class Proposal(AttrsProtected):
         # voting_status:
         #   1: voting in progress, funding
         #   2: voting in progress, no funding
-        #   3: voting complete, funding unknown
+        #   3: voting complete, historical funding status unknown
         self.voting_status = None
 
         self.name_col_widget = None
@@ -275,15 +275,15 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             ProposalColumn('fee_hash', 'Fee Hash', False),
             ProposalColumn('block_start', 'Block Start', True),
             ProposalColumn('block_end', 'Block End', True),
-            ProposalColumn('total_payment_count', 'Months', True),
-            ProposalColumn('remaining_payment_count', 'Months Remaining', True),
+            ProposalColumn('total_payment_count', 'Payments', True),
+            ProposalColumn('remaining_payment_count', 'Payments Remaining', True),
             ProposalColumn('payment_address', 'Payment Address', True),
             ProposalColumn('ratio', 'Ratio', False),
             ProposalColumn('yes_count', "Yeas", True),
             ProposalColumn('no_count', 'Nays', True),
             ProposalColumn('abstain_count', 'Abstentions', True),
-            ProposalColumn('total_payment', 'Total Amount', True),
-            ProposalColumn('monthly_payment', 'Monthly Amount', True),
+            ProposalColumn('total_payment', 'Total Payment', True),
+            ProposalColumn('monthly_payment', 'Per Payment', True),
             ProposalColumn('is_established', 'IsEstablished', False),
             ProposalColumn('is_valid', 'IsValid', False),
             ProposalColumn('is_valid_reason', 'IsValidReason', False),
@@ -293,7 +293,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             ProposalColumn('owner', 'Owner', False),
             ProposalColumn('voting_status_caption', 'Voting Status', True),
             ProposalColumn('active', 'Active', True),
-            ProposalColumn('current_month', 'Current Month', False),
+            ProposalColumn('current_month', 'Current Payment', False),
             ProposalColumn('absolute_yes_count', 'Absolute Yes Count', False),
             ProposalColumn('payment_start', 'Payment Start', True),
             ProposalColumn('payment_end', 'Payment End', True),
@@ -900,7 +900,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                                 " is_valid, is_valid_reason, f_valid, payment_start, payment_end,"
                                                 " cmt_active, cmt_create_time,"
                                                 " cmt_deactivation_time, cmt_voting_last_read_time)"
-                                                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,??,?,?,?,?,?,0)",
+                                                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
                                                 (prop.get_value('name'),
                                                  prop.get_value('url'),
                                                  prop.get_value('hash'),
