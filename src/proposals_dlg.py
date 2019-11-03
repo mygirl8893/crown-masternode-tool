@@ -55,9 +55,11 @@ CFG_PROPOSALS_VOTES_MAX_DATE = 'prop_votes_max_date'  # maximum date of vote(s),
 COLOR_YES = '#2eb82e'
 COLOR_NO = 'red'
 COLOR_ABSTAIN = 'orange'
+COLOR_UNKNOWN = 'black'
 QCOLOR_YES = QColor(COLOR_YES)
 QCOLOR_NO = QColor(COLOR_NO)
 QCOLOR_ABSTAIN = QColor(COLOR_ABSTAIN)
+QCOLOR_UNKNOWN = QColor(COLOR_UNKNOWN)
 
 
 class ProposalColumn(AttrsProtected):
@@ -277,11 +279,11 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             ProposalColumn('remaining_payment_count', 'Months Remaining', True),
             ProposalColumn('payment_address', 'Payment Address', True),
             ProposalColumn('ratio', 'Ratio', False),
-            ProposalColumn('yes_count', "Yes Count", True),
-            ProposalColumn('no_count', 'No Count', True),
-            ProposalColumn('abstain_count', 'Abstain Count', True),
+            ProposalColumn('yes_count', "Yeas", True),
+            ProposalColumn('no_count', 'Nays', True),
+            ProposalColumn('abstain_count', 'Abstentions', True),
             ProposalColumn('total_payment', 'Total Amount', True),
-            ProposalColumn('monthly_payment', 'Amount', True),
+            ProposalColumn('monthly_payment', 'Monthly Amount', True),
             ProposalColumn('is_established', 'IsEstablished', False),
             ProposalColumn('is_valid', 'IsValid', False),
             ProposalColumn('is_valid_reason', 'IsValidReason', False),
@@ -1909,7 +1911,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     </table>
                      </body>
                     </html>""" % (
-                        COLOR_YES, COLOR_ABSTAIN, COLOR_YES, COLOR_NO,
+                        COLOR_YES, COLOR_ABSTAIN, COLOR_UNKNOWN, COLOR_NO,
                         prop.get_value('name'),
                         prop.get_value('title'),
                         owner,
