@@ -80,7 +80,7 @@ class ProposalColumn(AttrsProtected):
         self.column_for_vote = column_for_vote
         self.my_masternode = None  # True, if column for masternode vote relates to user's masternode; such columns
         #  can not be removed
-        self.initil_order = None  # order by voting-in-progress first, then by payment_start descending
+        self.initial_order = None  # order by voting-in-progress first, then by payment_start descending
         self.initial_width = None
         self.display_order_no = None
         self.set_attr_protection()
@@ -898,9 +898,9 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                                 " payment_address, ratio, yes_count, no_count, absolute_yes_count,"
                                                 " abstain_count, total_payment, monthly_payment, is_established,"
                                                 " is_valid, is_valid_reason, f_valid, payment_start, payment_end,"
-                                                " cmt_active, cmt_create_time,"
+                                                " creation_time, cmt_active, cmt_create_time,"
                                                 " cmt_deactivation_time, cmt_voting_last_read_time)"
-                                                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
+                                                " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
                                                 (prop.get_value('name'),
                                                  prop.get_value('url'),
                                                  prop.get_value('hash'),
@@ -923,6 +923,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                                  prop.get_value('f_valid'),
                                                  prop.get_value('payment_start').strftime('%Y-%m-%d %H:%M:%S'),
                                                  prop.get_value('payment_end').strftime('%Y-%m-%d %H:%M:%S'),
+                                                 prop.get_value('creation_time').strftime('%Y-%m-%d %H:%M:%S'),
                                                  1,
                                                  datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                                  None))
@@ -1157,14 +1158,14 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                 # deactivated due to some problems with previuos executions
                                 # select all proposals with the same hash and move their votes to the current one
                                 cur_fix.execute('select id from PROPOSALS where hash=? and id<>?',
-                                                (row[12], row[19]))
+                                                (row[11], row[17]))
                                 for fix_row in cur_fix.fetchall():
                                     cur_fix_upd.execute('UPDATE VOTING_RESULTS set proposal_id=? where proposal_id=?',
-                                                        (row[19], fix_row[0]))
-                                    cur_fix_upd.execute('DELETE FROM PROPOSALS WHERE id=?', (fix_row[0]))
+                                                        (row[17], fix_row[0]))
+                                    cur_fix_upd.execute('DELETE FROM PROPOSALS WHERE id=?', (fix_row[0],))
                                     data_modified = True
                                     logging.warning('Deleted duplicated proposal from DB. ID: %s, HASH: %s' %
-                                                    (str(fix_row[0]), row[12]))
+                                                    (str(fix_row[0]), row[11]))
 
                                 prop = Proposal(self.columns, self.vote_columns_by_mn_ident, self.next_superblock_time)
                                 prop.set_value('name', row[0])
@@ -1178,15 +1179,14 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                 prop.set_value('creation_time', datetime.datetime.strptime(row[8], '%Y-%m-%d %H:%M:%S'))
                                 prop.set_value('url', row[9])
                                 prop.set_value('payment_address', row[10])
-                                prop.set_value('hash', row[12])
-                                prop.set_value('fee_hash', row[13])
-                                prop.set_value('fCachedFunding', True if row[14] else False)
-                                prop.set_value('IsValidReason', row[15])
-                                prop.db_id = row[19]
-                                prop.voting_last_read_time = row[20]
-                                prop.set_value('owner', row[21])
-                                prop.set_value('title', row[22])
-                                prop.ext_attributes_loaded = True if row[23] else False
+                                prop.set_value('hash', row[11])
+                                prop.set_value('fee_hash', row[12])
+                                prop.set_value('IsValidReason', row[13])
+                                prop.db_id = row[17]
+                                prop.voting_last_read_time = row[18]
+                                prop.set_value('owner', row[19])
+                                prop.set_value('title', row[20])
+                                prop.ext_attributes_loaded = True if row[21] else False
                                 prop.apply_values(self.masternodes, self.last_superblock_time,
                                                   self.next_superblock_time)
                                 self.proposals.append(prop)
@@ -1380,7 +1380,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
     def read_voting_from_db(self, columns):
         """ Read voting results for specified voting columns
         :param columns list of voting columns for which data will be loaded from db; it is used when user adds
-          a new column - wee want read data only for this column
+          a new column - we want read data only for this column
         """
         self.display_message('Reading voting data from DB, please wait...')
         begin_time = time.time()
@@ -1396,7 +1396,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         cur.execute("SELECT proposal_id, voting_time, voting_result "
                                     "FROM VOTING_RESULTS vr WHERE masternode_ident=? AND EXISTS "
                                     "(SELECT 1 FROM PROPOSALS p where p.id=vr.proposal_id and p.cmt_active=1)",
-                                    (mn_ident))
+                                    (mn_ident,))
                         for row in cur.fetchall():
                             if self.finishing:
                                 raise CloseDialogException
@@ -1484,7 +1484,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                 if cur:
                                     tm_begin = time.time()
                                     cur.execute("SELECT id, proposal_id from VOTING_RESULTS WHERE hash=?",
-                                                (v_key))
+                                                (v_key,))
 
                                     found = False
                                     for row in cur.fetchall():
