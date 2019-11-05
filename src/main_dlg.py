@@ -33,7 +33,7 @@ import send_payout_dlg
 import app_utils
 from initialize_hw_dlg import HwInitializeDlg
 from proposals_dlg import ProposalsDlg
-from app_config import AppConfig, MasterNodeConfig, APP_NAME_LONG, APP_NAME_SHORT, PROJECT_URL
+from app_config import AppConfig, MasterNodeConfig, SystemNodeConfig, APP_NAME_LONG, APP_NAME_SHORT, PROJECT_URL
 from crown_utils import bip32_path_n_to_string
 from crownd_intf import CrowndInterface, CrowndIndexException
 from hw_common import HardwareWalletCancelException, HardwareWalletPinException
@@ -67,6 +67,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         self.connecting_to_crownd = False
         self.hw_client = None
         self.curMasternode = None
+        self.curSystemnode = None
         self.editingEnabled = False
         self.app_path = app_path
 
@@ -83,7 +84,8 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         SshPassCache.set_parent_window(self)
         self.inside_setup_ui = True
         self.crownd_intf.window = self
-        self.btnHwBip32ToAddress.setEnabled(False)
+        self.btnHwBip32ToMnAddress.setEnabled(False)
+        self.btnHwBip32ToSnAddress.setEnabled(False)
         # self.edtMnStatus.setReadOnly(True)
         # self.edtMnStatus.setStyleSheet('QLineEdit{background-color: lightgray}')
         self.closeEvent = self.closeEvent
@@ -116,8 +118,10 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         self.setStyleSheet(styleSheet)
         self.setIcon(self.btnHwCheck, 'hw-test.ico')
         self.setIcon(self.btnHwDisconnect, "hw-lock.ico")
-        self.setIcon(self.btnHwAddressToBip32, QStyle.SP_ArrowRight)
-        self.setIcon(self.btnHwBip32ToAddress, QStyle.SP_ArrowLeft)
+        self.setIcon(self.btnHwMnAddressToBip32, QStyle.SP_ArrowRight)
+        self.setIcon(self.btnHwBip32ToMnAddress, QStyle.SP_ArrowLeft)
+#        self.setIcon(self.btnHwSnAddressToBip32, QStyle.SP_ArrowRight)
+#        self.setIcon(self.btnHwBip32ToSnAddress, QStyle.SP_ArrowLeft)
         self.setIcon(self.btnConfiguration, "gear.png")
         self.setIcon(self.btnProposals, "thumb-up.png")
         self.setIcon(self.btnActions, "tools.png")
@@ -182,6 +186,20 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.displayMasternodeConfig(True)
         else:
             self.curMasternode = None
+
+        # add systemnodes' info to the combobox
+        self.cboSystemnodes.clear()
+        for sn in self.config.systemnodes:
+            self.cboSystemnodes.addItem(sn.name, sn)
+        if self.config.systemnodes:
+            # get last systemnode selected
+            idx = cache.get_value('WndMainCurSystemnodeIndex', 0, int)
+            if idx >= len(self.config.systemnodes):
+                idx = 0
+            self.curSystemnode = self.config.systemnodes[idx]
+            self.displaySystemnodeConfig(True)
+        else:
+            self.curSystemnode = None
 
         # after loading whole configuration, reset 'modified' variable
         self.config.modified = False
@@ -290,6 +308,30 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             if self.curMasternode:
                 self.curMasternode.lock_modified_change = False
 
+    def displaySystemnodeConfig(self, set_sn_list_index):
+        if self.curSystemnode and set_sn_list_index:
+            self.cboSystemnodes.setCurrentIndex(self.config.systemnodes.index(self.curSystemnode))
+        try:
+            if self.curSystemnode:
+                self.curSystemnode.lock_modified_change = True
+            self.edtSnName.setText(self.curSystemnode.name if self.curSystemnode else '')
+            self.edtSnIp.setText(self.curSystemnode.ip if self.curSystemnode else '')
+            self.edtSnPort.setText(str(self.curSystemnode.port) if self.curSystemnode else '')
+            self.edtSnPrivateKey.setText(self.curSystemnode.privateKey if self.curSystemnode else '')
+            self.edtSnCollateralBip32Path.setText(self.curSystemnode.collateralBip32Path
+                                                  if self.curSystemnode else '')
+            self.edtSnCollateralAddress.setText(self.curSystemnode.collateralAddress if self.curSystemnode else '')
+            self.edtSnCollateralTx.setText(self.curSystemnode.collateralTx if self.curSystemnode else '')
+            self.edtSnCollateralTxIndex.setText(self.curSystemnode.collateralTxIndex if self.curSystemnode else '')
+            use_default_protocol = self.curSystemnode.use_default_protocol_version if self.curSystemnode else True
+            self.chbUseDefaultProtocolVersion.setChecked(use_default_protocol)
+            self.edtSnProtocolVersion.setText(self.curSystemnode.protocol_version if self.curSystemnode else '')
+            self.edtSnProtocolVersion.setVisible(not use_default_protocol)
+            self.lblSnStatus.setText('')
+        finally:
+            if self.curSystemnode:
+                self.curSystemnode.lock_modified_change = False
+
     @pyqtSlot(bool)
     def on_btnConfiguration_clicked(self):
         dlg = ConfigDlg(self, self.config)
@@ -363,10 +405,10 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                         self.is_crownd_syncing = False
                         self.on_connection_finished()
                         break
-                    mnsync = self.crownd_intf.mnsync()
+                    snsync = self.crownd_intf.snsync()
                     self.setMessage('Crownd is synchronizing: AssetID: %s, AssetName: %s' %
-                                        (str(mnsync.get('AssetID', '')),
-                                         str(mnsync.get('AssetName', ''))
+                                        (str(snsync.get('AssetID', '')),
+                                         str(snsync.get('AssetName', ''))
                                          ), style='{background-color:rgb(255,128,0);color:white;padding:3px 5px 3px 5px; border-radius:3px}')
                     cond.wait(mtx, 5000)
                 self.setMessage('')
@@ -463,6 +505,8 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.btnCheckConnection.setEnabled(False)
             self.btnBroadcastMn.setEnabled(False)
             self.btnRefreshMnStatus.setEnabled(False)
+            self.btnBroadcastSn.setEnabled(False)
+            self.btnRefreshSnStatus.setEnabled(False)
             self.btnActions.setEnabled(False)
             self.checkCrowndConnection(call_on_check_finished=connection_test_finished)
         else:
@@ -620,6 +664,10 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         self.newMasternodeConfig()
 
     @pyqtSlot(bool)
+    def on_btnNewSn_clicked(self):
+        self.newSystemnodeConfig()
+
+    @pyqtSlot(bool)
     def on_btnDeleteMn_clicked(self):
         if self.curMasternode:
             msg = QMessageBox()
@@ -636,7 +684,28 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.updateControlsState()
 
     @pyqtSlot(bool)
+    def on_btnDeleteSn_clicked(self):
+        if self.curSystemnode:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText('Do you really want to delete current systemnode configuration?')
+            msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            msg.setDefaultButton(QMessageBox.No)
+            retval = msg.exec_()
+            if retval == QMessageBox.No:
+                return
+            self.config.systemnodes.remove(self.curSystemnode)
+            self.cboSystemnodes.removeItem(self.cboSystemnodes.currentIndex())
+            self.config.modified = True
+            self.updateControlsState()
+
+    @pyqtSlot(bool)
     def on_btnEditMn_clicked(self):
+        self.editingEnabled = True
+        self.updateControlsState()
+
+    @pyqtSlot(bool)
+    def on_btnEditSn_clicked(self):
         self.editingEnabled = True
         self.updateControlsState()
 
@@ -893,6 +962,140 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                     self.errorMsg("File '" + file_name + "' does not exist")
 
     @pyqtSlot(bool)
+    def on_btnImportSystemnodesConf_clicked(self):
+        """
+        Imports systemnodes configuration from systemnode.conf file.
+        """
+
+        file_name = self.open_file_query(message='Enter the path to the systemnode.conf configuration file',
+                                        directory='', filter="All Files (*);;Conf files (*.conf)",
+                                        initial_filter="Conf files (*.conf)")
+
+        if file_name:
+            if os.path.exists(file_name):
+                if not self.editingEnabled:
+                    self.on_btnEditSn_clicked()
+
+                try:
+                    with open(file_name, 'r') as f_ptr:
+                        modified = False
+                        imported_cnt = 0
+                        skipped_cnt = 0
+                        sns_imported = []
+                        for line in f_ptr.readlines():
+                            line = line.strip()
+                            if not line:
+                                continue
+                            elems = line.split()
+                            if len(elems) >= 5 and not line.startswith('#'):
+                                sn_name = elems[0]
+                                sn_ipport = elems[1]
+                                sn_privkey = elems[2]
+                                sn_tx_hash = elems[3]
+                                sn_tx_idx = elems[4]
+                                sn_crown_addr = ''
+                                if len(elems) > 5:
+                                    sn_crown_addr = elems[5]
+
+                                def update_sn(in_sn):
+                                    in_sn.name = sn_name
+                                    ipelems = sn_ipport.split(':')
+                                    if len(ipelems) >= 2:
+                                        in_sn.ip = ipelems[0]
+                                        in_sn.port = ipelems[1]
+                                    else:
+                                        in_sn.ip = mn_ipport
+                                        in_sn.port = '9340'
+                                    in_sn.privateKey = sn_privkey
+                                    in_sn.collateralAddress = sn_crown_addr
+                                    in_sn.collateralTx = sn_tx_hash
+                                    in_sn.collateralTxIndex = sn_tx_idx
+                                    in_sn.collateralBip32Path = ''
+
+                                sn = self.config.get_sn_by_name(sn_name)
+                                if sn:
+                                    msg = QMessageBox()
+                                    msg.setIcon(QMessageBox.Information)
+                                    msg.setText('Systemnode ' + sn_name + ' exists. Overwrite?')
+                                    msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+                                    msg.setDefaultButton(QMessageBox.Yes)
+                                    retval = msg.exec_()
+                                    del msg
+                                    if retval == QMessageBox.No:
+                                        skipped_cnt += 1
+                                        continue
+                                    else:
+                                        # overwrite data
+                                        imported_cnt += 1
+                                        update_sn(sn)
+                                        sn.modified = True
+                                        modified = True
+                                        sns_imported.append(sn)
+                                        if self.curSystemnode == sn:
+                                            # current sn has been updated - update UI controls to new data
+                                            self.displaySystemnodeConfig(False)
+                                else:
+                                    imported_cnt += 1
+                                    sn = SystemNodeConfig()
+                                    update_sn(sn)
+                                    modified = True
+                                    self.config.add_sn(sn)
+                                    self.cboSystemnodes.addItem(sn.name, sn)
+                                    sns_imported.append(sn)
+                            else:
+                                # incorrect number of elements
+                                skipped_cnt += 1
+                        if modified:
+                            self.updateControlsState()
+                        if imported_cnt:
+                            msg_text = 'Successfully imported %s systemnode(s)' % str(imported_cnt)
+                            if skipped_cnt:
+                                msg_text += ', skipped: %s' % str(skipped_cnt)
+                            msg_text += ".\n\nIf you want to scan your " + self.getHwName() + \
+                                        " for BIP32 path(s) corresponding to collateral addresses, connect your " + \
+                                        self.getHwName() + " and click Yes." + \
+                                        "\n\nIf you want to enter BIP32 path(s) manually, click No."
+
+                            if self.queryDlg(message=msg_text, buttons=QMessageBox.Yes | QMessageBox.No,
+                                             default_button=QMessageBox.Yes) == QMessageBox.Yes:
+                                # scan all Crown addresses from imported systemnodes for BIP32 path, starting from
+                                # first standard Crown BIP32 path
+
+                                addresses_to_scan = []
+                                for sn in sns_imported:
+                                    if not sn.collateralBip32Path and sn.collateralAddress:
+                                        addresses_to_scan.append(sn.collateralAddress)
+                                self.disconnectHardwareWallet()  # forcing to enter the passphrase again
+                                found_paths, user_cancelled = self.hwScanForBip32Paths(addresses_to_scan)
+
+                                paths_missing = 0
+                                for sn in sns_imported:
+                                    if not sn.collateralBip32Path and sn.collateralAddress:
+                                        path = found_paths.get(sn.collateralAddress)
+                                        sn.collateralBip32Path = path
+                                        if path:
+                                            if self.curSystemnode == sn:
+                                                # current sn has been updated - update UI controls
+                                                # to new data
+                                                self.displaySystemnodeConfig(False)
+                                        else:
+                                            paths_missing += 1
+
+                                if paths_missing:
+                                    self.warnMsg('Not all BIP32 paths were found. You have to manually enter '
+                                                 'missing paths.')
+
+                        elif skipped_cnt:
+                            self.infoMsg('Operation finished with no imported and %s skipped systemnodes.'
+                                         % str(skipped_cnt))
+
+                except Exception as e:
+                    self.errorMsg('Reading file failed: ' + str(e))
+            else:
+                if file_name:
+                    self.errorMsg("File '" + file_name + "' does not exist")
+
+    @pyqtSlot(bool)
     def on_btnSaveConfiguration_clicked(self, clicked):
         self.save_configuration()
 
@@ -908,6 +1111,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.edtMnName.setReadOnly(not editing)
             self.edtMnPort.setReadOnly(not editing)
             self.chbUseDefaultProtocolVersion.setEnabled(editing)
+            self.chbUseDefaultProtocolVersionSN.setEnabled(editing)
             self.edtMnProtocolVersion.setEnabled(editing)
             self.edtMnPrivateKey.setReadOnly(not editing)
             self.edtMnCollateralBip32Path.setReadOnly(not editing)
@@ -915,16 +1119,34 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.edtMnCollateralTx.setReadOnly(not editing)
             self.edtMnCollateralTxIndex.setReadOnly(not editing)
             self.btnGenerateMNPrivateKey.setEnabled(editing)
-            self.btnFindCollateral.setEnabled(editing and self.curMasternode.collateralAddress is not None and
+            self.btnFindMnCollateral.setEnabled(editing and self.curMasternode.collateralAddress is not None and
                                               self.curMasternode.collateralAddress != '')
-            self.btnHwBip32ToAddress.setEnabled(editing)
-            self.btnHwAddressToBip32.setEnabled(editing)
+            self.btnHwBip32ToMnAddress.setEnabled(editing)
+            self.btnHwMnAddressToBip32.setEnabled(editing)
             self.btnDeleteMn.setEnabled(self.curMasternode is not None)
             self.btnEditMn.setEnabled(not self.editingEnabled and self.curMasternode is not None)
-            self.btnSaveConfiguration.setEnabled(self.configModified())
-            self.btnHwDisconnect.setEnabled(True if self.hw_client else False)
             self.btnRefreshMnStatus.setEnabled(self.curMasternode is not None)
             self.btnBroadcastMn.setEnabled(self.curMasternode is not None)
+            self.edtSnIp.setReadOnly(not editing)
+            self.edtSnName.setReadOnly(not editing)
+            self.edtSnPort.setReadOnly(not editing)
+            self.edtSnProtocolVersion.setEnabled(editing)
+            self.edtSnPrivateKey.setReadOnly(not editing)
+            self.edtSnCollateralBip32Path.setReadOnly(not editing)
+            self.edtSnCollateralAddress.setReadOnly(not editing)
+            self.edtSnCollateralTx.setReadOnly(not editing)
+            self.edtSnCollateralTxIndex.setReadOnly(not editing)
+            self.btnGenerateSNPrivateKey.setEnabled(editing)
+            self.btnFindSnCollateral.setEnabled(editing and self.curSystemnode.collateralAddress is not None and
+                                              self.curSystemnode.collateralAddress != '')
+            self.btnHwBip32ToSnAddress.setEnabled(editing)
+            self.btnHwSnAddressToBip32.setEnabled(editing)
+            self.btnDeleteSn.setEnabled(self.curSystemnode is not None)
+            self.btnEditSn.setEnabled(not self.editingEnabled and self.curSystemnode is not None)
+            self.btnRefreshSnStatus.setEnabled(self.curSystemnode is not None)
+            self.btnBroadcastSn.setEnabled(self.curSystemnode is not None)
+            self.btnSaveConfiguration.setEnabled(self.configModified())
+            self.btnHwDisconnect.setEnabled(True if self.hw_client else False)
 
         if threading.current_thread() != threading.main_thread():
             self.call_in_main_thread(update_fun)
@@ -937,6 +1159,10 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         if not modified:
             for mn in self.config.masternodes:
                 if mn.modified:
+                    modified = True
+                    break
+            for sn in self.config.systemnodes:
+                if sn.modified:
                     modified = True
                     break
         return modified
@@ -967,9 +1193,40 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             # position to a new masternode position
             self.cboMasternodes.setCurrentIndex(self.config.masternodes.index(self.curMasternode))
 
+    def newSystemnodeConfig(self):
+        new_sn = SystemNodeConfig()
+        new_sn.new = True
+        self.curSystemnode = new_sn
+        # find new, not used systemnode name proposal
+        name_found = None
+        for nr in range(1, 100):
+            exists = False
+            for sn in self.config.systemnodes:
+                if sn.name == 'SN' + str(nr):
+                    exists = True
+                    break
+            if not exists:
+                name_found = 'SN' + str(nr)
+                break
+        if name_found:
+            new_sn.name = name_found
+        self.config.systemnodes.append(new_sn)
+        self.editingEnabled = True
+        old_index = self.cboSystemnodes.currentIndex()
+        self.cboSystemnodes.addItem(new_sn.name, new_sn)
+        if old_index != -1:
+            # if systemnodes combo was not empty before adding new sn, we have to manually set combobox
+            # position to a new systemnode position
+            self.cboSystemnodes.setCurrentIndex(self.config.systemnodes.index(self.curSystemnode))
+
     def curMnModified(self):
         if self.curMasternode:
             self.curMasternode.set_modified()
+            self.btnSaveConfiguration.setEnabled(self.configModified())
+
+    def curSnModified(self):
+        if self.curSystemnode:
+            self.curSystemnode.set_modified()
             self.btnSaveConfiguration.setEnabled(self.configModified())
 
     @pyqtSlot(int)
@@ -983,6 +1240,17 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         if not self.inside_setup_ui:
             cache.set_value('WndMainCurMasternodeIndex', self.cboMasternodes.currentIndex())
 
+    @pyqtSlot(int)
+    def on_cboSystemnodes_currentIndexChanged(self):
+        if self.cboSystemnodes.currentIndex() >= 0:
+            self.curSystemnode = self.config.systemnodes[self.cboSystemnodes.currentIndex()]
+        else:
+            self.curSystemnode = None
+        self.displaySystemnodeConfig(False)
+        self.updateControlsState()
+        if not self.inside_setup_ui:
+            cache.set_value('WndMainCurSystemnodeIndex', self.cboSystemnodes.currentIndex())
+
     @pyqtSlot(str)
     def on_edtMnName_textEdited(self):
         if self.curMasternode:
@@ -991,16 +1259,35 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.cboMasternodes.setItemText(self.cboMasternodes.currentIndex(), self.curMasternode.name)
 
     @pyqtSlot(str)
+    def on_edtSnName_textEdited(self):
+        if self.curSystemnode:
+            self.curSnModified()
+            self.curSystemnode.name = self.edtSnName.text()
+            self.cboSystemnodes.setItemText(self.cboSystemnodes.currentIndex(), self.curSystemnode.name)
+
+    @pyqtSlot(str)
     def on_edtMnIp_textEdited(self):
         if self.curMasternode:
             self.curMnModified()
             self.curMasternode.ip = self.edtMnIp.text()
 
     @pyqtSlot(str)
+    def on_edtSnIp_textEdited(self):
+        if self.curSystemnode:
+            self.curSnModified()
+            self.curSystemnode.ip = self.edtSnIp.text()
+
+    @pyqtSlot(str)
     def on_edtMnPort_textEdited(self):
         if self.curMasternode:
             self.curMnModified()
             self.curMasternode.port = self.edtMnPort.text()
+
+    @pyqtSlot(str)
+    def on_edtSnPort_textEdited(self):
+        if self.curSystemnode:
+            self.curSnModified()
+            self.curSystemnode.port = self.edtSnPort.text()
 
     @pyqtSlot(bool)
     def on_chbUseDefaultProtocolVersion_toggled(self, use_default):
@@ -1016,10 +1303,22 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.curMasternode.protocol_version = version
 
     @pyqtSlot(str)
+    def on_edtSnProtocolVersion_textEdited(self, version):
+        if self.curSystemnode:
+            self.curSnModified()
+            self.curSystemnode.protocol_version = version
+
+    @pyqtSlot(str)
     def on_edtMnPrivateKey_textEdited(self):
         if self.curMasternode:
             self.curMnModified()
             self.curMasternode.privateKey = self.edtMnPrivateKey.text()
+
+    @pyqtSlot(str)
+    def on_edtSnPrivateKey_textEdited(self):
+        if self.curSystemnode:
+            self.curSnModified()
+            self.curSystemnode.privateKey = self.edtSnPrivateKey.text()
 
     @pyqtSlot(str)
     def on_edtMnCollateralBip32Path_textEdited(self):
@@ -1027,9 +1326,19 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.curMnModified()
             self.curMasternode.collateralBip32Path = self.edtMnCollateralBip32Path.text()
             if self.curMasternode.collateralBip32Path:
-                self.btnHwBip32ToAddress.setEnabled(True)
+                self.btnHwBip32ToMnAddress.setEnabled(True)
             else:
-                self.btnHwBip32ToAddress.setEnabled(False)
+                self.btnHwBip32ToMnAddress.setEnabled(False)
+
+    @pyqtSlot(str)
+    def on_edtSnCollateralBip32Path_textEdited(self):
+        if self.curSystemnode:
+            self.curSnModified()
+            self.curSystemnode.collateralBip32Path = self.edtSnCollateralBip32Path.text()
+            if self.curSystemnode.collateralBip32Path:
+                self.btnHwBip32ToSnAddress.setEnabled(True)
+            else:
+                self.btnHwBip32ToSnAddress.setEnabled(False)
 
     @pyqtSlot(str)
     def on_edtMnCollateralAddress_textEdited(self):
@@ -1038,9 +1347,20 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.curMasternode.collateralAddress = self.edtMnCollateralAddress.text()
             self.updateControlsState()
             if self.curMasternode.collateralAddress:
-                self.btnHwAddressToBip32.setEnabled(True)
+                self.btnHwMnAddressToBip32.setEnabled(True)
             else:
-                self.btnHwAddressToBip32.setEnabled(False)
+                self.btnHwMnAddressToBip32.setEnabled(False)
+
+    @pyqtSlot(str)
+    def on_edtSnCollateralAddress_textEdited(self):
+        if self.curSystemnode:
+            self.curSnModified()
+            self.curSystemnode.collateralAddress = self.edtSnCollateralAddress.text()
+            self.updateControlsState()
+            if self.curSystemnode.collateralAddress:
+                self.btnHwSnAddressToBip32.setEnabled(True)
+            else:
+                self.btnHwSnAddressToBip32.setEnabled(False)
 
     @pyqtSlot(str)
     def on_edtMnCollateralTx_textEdited(self, text):
@@ -1051,12 +1371,28 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             logging.warning('curMasternode == None')
 
     @pyqtSlot(str)
+    def on_edtSnCollateralTx_textEdited(self, text):
+        if self.curSystemnode:
+            self.curSnModified()
+            self.curSystemnode.collateralTx = text
+        else:
+            logging.warning('curSystemnode == None')
+
+    @pyqtSlot(str)
     def on_edtMnCollateralTxIndex_textEdited(self, text):
         if self.curMasternode:
             self.curMnModified()
             self.curMasternode.collateralTxIndex = text
         else:
             logging.warning('curMasternode == None')
+
+    @pyqtSlot(str)
+    def on_edtSnCollateralTxIndex_textEdited(self, text):
+        if self.curSystemnode:
+            self.curSnModified()
+            self.curSystemnode.collateralTxIndex = text
+        else:
+            logging.warning('curSystemnode == None')
 
     @pyqtSlot(bool)
     def on_btnGenerateMNPrivateKey_clicked(self):
@@ -1076,7 +1412,24 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         self.curMnModified()
 
     @pyqtSlot(bool)
-    def on_btnHwBip32ToAddress_clicked(self):
+    def on_btnGenerateSNPrivateKey_clicked(self):
+        if self.edtSnPrivateKey.text():
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText('This will overwrite current private key value. Do you really want to proceed?')
+            msg.setStandardButtons(QMessageBox.Ok | QMessageBox.No)
+            msg.setDefaultButton(QMessageBox.No)
+            retval = msg.exec_()
+            if retval == QMessageBox.No:
+                return
+
+        wif = crown_utils.generate_privkey()
+        self.curSystemnode.privateKey = wif
+        self.edtSnPrivateKey.setText(wif)
+        self.curSnModified()
+
+    @pyqtSlot(bool)
+    def on_btnHwBip32ToMnAddress_clicked(self):
         """
         Convert BIP32 path to Crown address.
         :return: 
@@ -1097,7 +1450,28 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.errorMsg(str(e))
 
     @pyqtSlot(bool)
-    def on_btnHwAddressToBip32_clicked(self):
+    def on_btnHwBip32ToSnAddress_clicked(self):
+        """
+        Convert BIP32 path to Crown address.
+        :return: 
+        """
+        try:
+            self.connectHardwareWallet()
+            if not self.hw_client:
+                return
+            if self.curSystemnode and self.curSystemnode.collateralBip32Path:
+                crown_addr = hw_intf.get_address(self, self.curSystemnode.collateralBip32Path)
+                self.edtSnCollateralAddress.setText(crown_addr)
+                self.curSystemnode.collateralAddress = crown_addr
+                self.curSnModified()
+        except HardwareWalletCancelException:
+            if self.hw_client:
+                self.hw_client.init_device()
+        except Exception as e:
+            self.errorMsg(str(e))
+
+    @pyqtSlot(bool)
+    def on_btnHwMnAddressToBip32_clicked(self):
         """
         Converts Crown address to BIP32 path, using hardware wallet.
         :return: 
@@ -1118,6 +1492,37 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                         self.edtMnCollateralBip32Path.setText(paths.get(self.curMasternode.collateralAddress, ''))
                         self.curMasternode.collateralBip32Path = paths.get(self.curMasternode.collateralAddress, '')
                         self.curMnModified()
+                else:
+                    logging.info('Cancelled')
+
+        except HardwareWalletCancelException:
+            if self.hw_client:
+                self.hw_client.init_device()
+        except Exception as e:
+            self.errorMsg(str(e))
+
+    @pyqtSlot(bool)
+    def on_btnHwSnAddressToBip32_clicked(self):
+        """
+        Converts Crown address to BIP32 path, using hardware wallet.
+        :return: 
+        """
+
+        try:
+            self.disconnectHardwareWallet()  # forcing to enter the passphrase again
+            self.connectHardwareWallet()
+            if not self.hw_client:
+                return
+            if self.curSystemnode and self.curSystemnode.collateralAddress:
+                paths, user_cancelled = self.hwScanForBip32Paths([self.curSystemnode.collateralAddress])
+                if not user_cancelled:
+                    if not paths or len(paths) == 0:
+                        self.errorMsg("Couldn't find Crown address in your hardware wallet. If you are using HW passphrase, "
+                                      "make sure, that you entered the correct one.")
+                    else:
+                        self.edtSnCollateralBip32Path.setText(paths.get(self.curSystemnode.collateralAddress, ''))
+                        self.curSystemnode.collateralBip32Path = paths.get(self.curSystemnode.collateralAddress, '')
+                        self.curSnModified()
                 else:
                     logging.info('Cancelled')
 
@@ -1390,6 +1795,25 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 return (mns_info[0].status, protocol_version)
         return '???', None
 
+    def get_systemnode_status(self, systemnode):
+        """
+        Returns tuple: the current systemnode status (ENABLED, PRE_ENABLED, WATCHDOG_EXPIRED, ...)
+        and a protocol version.
+        :return:
+        """
+        if self.crownd_connection_ok:
+            collateral_id = systemnode.collateralTx + '-' + systemnode.collateralTxIndex
+            sns_info = self.crownd_intf.get_systemnodelist('full', collateral_id)
+            if len(sns_info):
+                protocol_version = sns_info[0].protocol
+                if isinstance(protocol_version, str):
+                    try:
+                        protocol_version = int(protocol_version)
+                    except:
+                        logging.warning('Invalid systemnode protocol version: ' + str(protocol_version))
+                return (sns_info[0].status, protocol_version)
+        return '???', None
+
     def get_masternode_status_description(self):
         """
         Get current masternode's extended status.
@@ -1454,6 +1878,70 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             status = '<span style="color:red">Problem with connection to crownd.</span>'
         return status
 
+    def get_systemnode_status_description(self):
+        """
+        Get current systemnode's extended status.
+        """
+
+        if self.crownd_connection_ok:
+            collateral_id = self.curSystemnode.collateralTx + '-' + self.curSystemnode.collateralTxIndex
+
+            if not self.curSystemnode.collateralTx:
+                return '<span style="color:red">Enter the collateral TX ID</span>'
+
+            if not self.curSystemnode.collateralTxIndex:
+                return '<span style="color:red">Enter the collateral TX index</span>'
+
+            sns_info = self.crownd_intf.get_systemnodelist('full', data_max_age=120)  # read new data from the network
+                                                                                     # every 120 seconds
+            sn_info = self.crownd_intf.systemnodes_by_ident.get(collateral_id)
+            if sn_info:
+                if sn_info.lastseen > 0:
+                    lastseen = datetime.datetime.fromtimestamp(float(sn_info.lastseen))
+                    lastseen_str = self.config.to_string(lastseen)
+                    lastseen_ago = app_utils.seconds_to_human(time.time() - float(sn_info.lastseen),
+                                                               out_seconds=False) + ' ago'
+                else:
+                    lastseen_str = 'never'
+                    lastseen_ago = ''
+
+                if sn_info.lastpaidtime > 0:
+                    lastpaid = datetime.datetime.fromtimestamp(float(sn_info.lastpaidtime))
+                    lastpaid_str = self.config.to_string(lastpaid)
+                    lastpaid_ago = app_utils.seconds_to_human(time.time() - float(sn_info.lastpaidtime),
+                                                               out_seconds=False) + ' ago'
+                else:
+                    lastpaid_str = 'never'
+                    lastpaid_ago = ''
+
+                activeseconds_str = app_utils.seconds_to_human(int(sn_info.activeseconds), out_seconds=False)
+                if sn_info.status == 'ENABLED' or sn_info.status == 'PRE_ENABLED':
+                    color = 'green'
+                else:
+                    color = 'red'
+                enabled_sns_count = len(self.crownd_intf.payment_queue)
+
+                status = '<style>td {white-space:nowrap;padding-right:8px}' \
+                         '.title {text-align:right;font-weight:bold}' \
+                         '.ago {font-style:normal}' \
+                         '.value {color:navy}' \
+                         '</style>' \
+                         '<table>' \
+                         '<tr><td class="title">Status:</td><td class="value"><span style="color:%s">%s</span>' \
+                         '</td><td>v.%s</td></tr>' \
+                         '<tr><td class="title">Last Seen:</td><td class="value">%s</td><td class="ago">%s</td></tr>' \
+                         '<tr><td class="title">Last Paid:</td><td class="value">%s</td><td class="ago">%s</td></tr>' \
+                         '<tr><td class="title">Active Duration:</td><td class="value" colspan="2">%s</td></tr>' \
+                         '<tr><td class="title">Queue/Count:</td><td class="value" colspan="2">%s/%s</td></tr>' \
+                         '</table>' % \
+                         (color, sn_info.status, str(sn_info.protocol), lastseen_str, lastseen_ago, lastpaid_str,
+                          lastpaid_ago, activeseconds_str, str(sn_info.queue_position), enabled_sns_count)
+            else:
+                status = '<span style="color:red">Systemnode not found.</span>'
+        else:
+            status = '<span style="color:red">Problem with connection to crownd.</span>'
+        return status
+
     @pyqtSlot(bool)
     def on_btnRefreshMnStatus_clicked(self):
         def enable_buttons():
@@ -1476,6 +1964,27 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.errorMsg('Crown daemon not connected')
 
     @pyqtSlot(bool)
+    def on_btnRefreshSnStatus_clicked(self):
+        def enable_buttons():
+            self.btnRefreshSnStatus.setEnabled(True)
+            self.btnBroadcastSn.setEnabled(True)
+
+        self.lblSnStatus.setText('<b>Retrieving systemnode information, please wait...<b>')
+        self.btnRefreshSnStatus.setEnabled(False)
+        self.btnBroadcastSn.setEnabled(False)
+
+        self.checkCrowndConnection(wait_for_check_finish=True, call_on_check_finished=enable_buttons)
+        if self.crownd_connection_ok:
+            try:
+                status = self.get_systemnode_status_description()
+                self.lblSnStatus.setText(status)
+            except:
+                self.lblSnStatus.setText('')
+                raise
+        else:
+            self.errorMsg('Crown daemon not connected')
+
+    @pyqtSlot(bool)
     def on_actTransferFundsSelectedMn_triggered(self):
         """
         Shows tranfser funds window with utxos related to current masternode. 
@@ -1493,6 +2002,25 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                 self.executeTransferFundsDialog(src_addresses)
         else:
             self.errorMsg('No masternode selected')
+
+    @pyqtSlot(bool)
+    def on_actTransferFundsSelectedSn_triggered(self):
+        """
+        Shows tranfser funds window with utxos related to current systemnode. 
+        """
+        if self.curSystemnode:
+            src_addresses = []
+            if not self.curSystemnode.collateralBip32Path:
+                self.errorMsg("Enter the systemnode collateral BIP32 path. You can use the 'right arrow' button "
+                              "on the right of the 'Collateral' edit box.")
+            elif not self.curSystemnode.collateralAddress:
+                self.errorMsg("Enter the systemnode collateral Crown address. You can use the 'left arrow' "
+                              "button on the left of the 'BIP32 path' edit box.")
+            else:
+                src_addresses.append((self.curSystemnode.collateralAddress, self.curSystemnode.collateralBip32Path))
+                self.executeTransferFundsDialog(src_addresses)
+        else:
+            self.errorMsg('No systemnode selected')
 
     @pyqtSlot(bool)
     def on_actTransferFundsForAllMns_triggered(self):
@@ -1518,9 +2046,32 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
             self.errorMsg('No masternode with the BIP32 path and Crown address configured.')
 
     @pyqtSlot(bool)
+    def on_actTransferFundsForAllSns_triggered(self):
+        """
+        Shows tranfser funds window with utxos related to all systemnodes. 
+        """
+        src_addresses = []
+        lacking_addresses  = 0
+        for sn in self.config.systemnodes:
+            if sn.collateralAddress and sn.collateralBip32Path:
+                src_addresses.append((sn.collateralAddress, sn.collateralBip32Path))
+            else:
+                lacking_addresses += 1
+        if len(src_addresses):
+            if lacking_addresses == 0 or \
+                self.queryDlg("Some of your Systemnodes lack the Crown addres and/or BIP32 path of the collateral "
+                              "in their configuration. Transactions for these Systemnodes will not be listed.\n\n"
+                              "Continue?",
+                              buttons=QMessageBox.Yes | QMessageBox.Cancel,
+                              default_button=QMessageBox.Yes, icon=QMessageBox.Warning) == QMessageBox.Yes:
+                self.executeTransferFundsDialog(src_addresses)
+        else:
+            self.errorMsg('No systemnode with the BIP32 path and Crown address configured.')
+
+    @pyqtSlot(bool)
     def on_actTransferFundsForAddress_triggered(self):
         """
-        Shows tranfser funds window for address/path specified by the user.
+        Shows transfer funds window for address/path specified by the user.
         """
         if not self.crownd_intf.open():
             self.errorMsg('Crown daemon not connected')
@@ -1570,7 +2121,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         ui.exec_()
 
     @pyqtSlot(bool)
-    def on_btnFindCollateral_clicked(self):
+    def on_btnFindMnCollateral_clicked(self):
         """
         Open dialog with list of utxos of collateral crown address.
         :return: 
@@ -1589,6 +2140,27 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
                         self.updateControlsState()
         else:
             logging.warning("curMasternode or collateralAddress empty")
+
+    @pyqtSlot(bool)
+    def on_btnFindSnCollateral_clicked(self):
+        """
+        Open dialog with list of utxos of collateral crown address.
+        :return: 
+        """
+        if self.curSystemnode and self.curSystemnode.collateralAddress:
+            ui = FindCollateralTxDlg(self, self.crownd_intf, self.curSystemnode.collateralAddress)
+            if ui.exec_():
+                tx, txidx = ui.getSelection()
+                if tx:
+                    if self.curSystemnode.collateralTx != tx or self.curSystemnode.collateralTxIndex != str(txidx):
+                        self.curSystemnode.collateralTx = tx
+                        self.curSystemnode.collateralTxIndex = str(txidx)
+                        self.edtSnCollateralTx.setText(tx)
+                        self.edtSnCollateralTxIndex.setText(str(txidx))
+                        self.curSnModified()
+                        self.updateControlsState()
+        else:
+            logging.warning("curSystemnode or collateralAddress empty")
 
     @pyqtSlot(bool)
     def on_btnProposals_clicked(self):

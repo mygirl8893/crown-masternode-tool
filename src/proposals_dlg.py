@@ -1081,7 +1081,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
 
                     except Exception as e:
                         logging.exception('Exception while reading governance info.')
-                        self.errorMsg("Coundn't read governanceinfo from the Crown network. "
+                        self.errorMsg("Coundn't read governance info from the Crown network. "
                                       "Some features may not work correctly because of this. Details: " + str(e))
 
                     # get list of all masternodes
@@ -1181,7 +1181,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                 prop.set_value('payment_address', row[10])
                                 prop.set_value('hash', row[11])
                                 prop.set_value('fee_hash', row[12])
-                                prop.set_value('IsValidReason', row[13])
+                                prop.set_value('is_valid_reason', row[13])
                                 prop.db_id = row[17]
                                 prop.voting_last_read_time = row[18]
                                 prop.set_value('owner', row[19])
@@ -1465,14 +1465,14 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         votes = self.crownd_intf.mnbudget("getvotes", prop.get_value('name'))
                         network_duration += (time.time() - tm_begin)
 
-                        for v_key in votes:
+                        for mn_ident in votes:
                             if self.finishing:
                                 raise CloseDialogException
 
-                            v = votes[v_key]
-                            mn_ident = v_key
+                            v = votes[mn_ident]
                             voting_timestamp = int(v['nTime'])
                             voting_time = datetime.datetime.fromtimestamp(voting_timestamp)
+                            voting_hash = v['nHash']
                             voting_result = v['Vote']
                             mn = self.masternodes_by_ident.get(mn_ident)
 
@@ -1484,7 +1484,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                 if cur:
                                     tm_begin = time.time()
                                     cur.execute("SELECT id, proposal_id from VOTING_RESULTS WHERE hash=?",
-                                                (v_key,))
+                                                (voting_hash,))
 
                                     found = False
                                     for row in cur.fetchall():
@@ -1495,11 +1495,11 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                                     db_oper_duration += (time.time() - tm_begin)
                                     db_oper_count += 1
                                     if not found:
-                                        votes_added.append((prop, mn, voting_time, voting_result, mn_ident, v_key))
+                                        votes_added.append((prop, mn, voting_time, voting_result, mn_ident, voting_hash))
                                 else:
                                     # no chance to check whether record exists in the DB, so assume it's not
                                     # to have it displayed on the grid
-                                    votes_added.append((prop, mn, voting_time, voting_result, mn_ident, v_key))
+                                    votes_added.append((prop, mn, voting_time, voting_result, mn_ident, voting_hash))
 
                         proposals_updated.append(prop)
 

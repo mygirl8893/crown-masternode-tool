@@ -94,6 +94,7 @@ class AppConfig(object):
         self.add_random_offset_to_vote_time = True  # To avoid identifying one user's masternodes by vote time
         self.csv_delimiter =';'
         self.masternodes = []
+        self.systemnodes = []
         self.last_bip32_base_path = ''
         self.bip32_recursive_search = True
         self.modified = False
@@ -385,6 +386,20 @@ class AppConfig(object):
                             config.get(section, 'use_default_protocol_version', fallback='1'))
                         mn.protocol_version = config.get(section, 'protocol_version', fallback='')
                         self.masternodes.append(mn)
+                    elif re.match('SN\d', section):
+                        sn = SystemNodeConfig()
+                        sn.name = config.get(section, 'name', fallback='')
+                        sn.ip = config.get(section, 'ip', fallback='')
+                        sn.port = config.get(section, 'port', fallback='')
+                        sn.privateKey = config.get(section, 'private_key', fallback='')
+                        sn.collateralBip32Path = config.get(section, 'collateral_bip32_path', fallback='')
+                        sn.collateralAddress = config.get(section, 'collateral_address', fallback='')
+                        sn.collateralTx = config.get(section, 'collateral_tx', fallback='')
+                        sn.collateralTxIndex = config.get(section, 'collateral_tx_index', fallback='')
+                        sn.use_default_protocol_version = self.value_to_bool(
+                            config.get(section, 'use_default_protocol_version', fallback='1'))
+                        sn.protocol_version = config.get(section, 'protocol_version', fallback='')
+                        self.systemnodes.append(sn)
                     elif re.match('NETCFG\d', section):
                         # read network configuration from new config file format
                         cfg = CrownNetworkConnectionCfg('rpc')
@@ -485,6 +500,22 @@ class AppConfig(object):
             config.set(section, 'use_default_protocol_version', '1' if mn.use_default_protocol_version else '0')
             config.set(section, 'protocol_version', str(mn.protocol_version))
             mn.modified = False
+
+        # save sn configuration
+        for idx, sn in enumerate(self.systemnodes):
+            section = 'SN' + str(idx+1)
+            config.add_section(section)
+            config.set(section, 'name', sn.name)
+            config.set(section, 'ip', sn.ip)
+            config.set(section, 'port', str(sn.port))
+            config.set(section, 'private_key', sn.privateKey)
+            config.set(section, 'collateral_bip32_path', sn.collateralBip32Path)
+            config.set(section, 'collateral_address', sn.collateralAddress)
+            config.set(section, 'collateral_tx', sn.collateralTx)
+            config.set(section, 'collateral_tx_index', str(sn.collateralTxIndex))
+            config.set(section, 'use_default_protocol_version', '1' if sn.use_default_protocol_version else '0')
+            config.set(section, 'protocol_version', str(sn.protocol_version))
+            sn.modified = False
 
         # save crown network connections
         for idx, cfg in enumerate(self.crown_net_configs):
@@ -734,6 +765,20 @@ class AppConfig(object):
             else:
                 raise Exception('Masternode with this name: ' + mn.name + ' already exists in configuration')
 
+    def get_sn_by_name(self, name):
+        for sn in self.systemnodes:
+            if sn.name == name:
+                return sn
+        return None
+
+    def add_sn(self, sn):
+        if sn not in self.systemnodes:
+            existing_sn = self.get_sn_by_name(sn.name)
+            if not existing_sn:
+                self.systemnodes.append(sn)
+            else:
+                raise Exception('Systemnode with this name: ' + mn.name + ' already exists in configuration')
+
 
 class MasterNodeConfig:
     def __init__(self):
@@ -755,6 +800,25 @@ class MasterNodeConfig:
         if not self.lock_modified_change:
             self.modified = True
 
+class SystemNodeConfig:
+    def __init__(self):
+        self.name = ''
+        self.ip = ''
+        self.port = '9340'
+        self.privateKey = ''
+        self.collateralBip32Path = ''
+        self.collateralAddress = ''
+        self.collateralTx = ''
+        self.collateralTxIndex = ''
+        self.use_default_protocol_version = True
+        self.protocol_version = ''
+        self.new = False
+        self.modified = False
+        self.lock_modified_change = False
+
+    def set_modified(self):
+        if not self.lock_modified_change:
+            self.modified = True
 
 class SSHConnectionCfg(object):
     def __init__(self):

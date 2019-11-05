@@ -449,6 +449,31 @@ class Masternode(AttrsProtected):
                 self.modified = True
         super().__setattr__(name, value)
 
+class Systemnode(AttrsProtected):
+    def __init__(self):
+        AttrsProtected.__init__(self)
+        self.ident = None
+        self.status = None
+        self.protocol = None
+        self.payee = None
+        self.lastseen = None
+        self.activeseconds = None
+        self.lastpaidtime = None
+        self.lastpaidblock = None
+        self.ip = None
+        self.db_id = None
+        self.marker = None
+        self.modified = False
+        self.monitor_changes = False
+        self.queue_position = None
+        self.set_attr_protection()
+
+    def __setattr__(self, name, value):
+        if hasattr(self, name) and name not in ('modified', 'marker', 'monitor_changes', '_AttrsProtected__allow_attr_definition'):
+            if self.monitor_changes and getattr(self, name) != value:
+                self.modified = True
+        super().__setattr__(name, value)
+
 
 def json_cache_wrapper(func, intf, cache_file_ident):
     """
@@ -505,6 +530,8 @@ class CrowndInterface(WndUtils):
 
         self.masternodes = []  # cached list of all masternodes (Masternode object)
         self.masternodes_by_ident = {}
+        self.systemnodes = []  # cached list of all systemnodes (Systemnode object)
+        self.systemnodes_by_ident = {}
         self.payment_queue = []
 
         self.ssh = None
@@ -562,6 +589,57 @@ class CrowndInterface(WndUtils):
             logging.info('DB read time of %d MASTERNODES: %s s, db fix time: %s' %
                          (len(self.masternodes), str(tm_diff), str(db_correction_duration)))
             self.update_mn_queue_values()
+        except Exception as e:
+            logging.exception('SQLite initialization error')
+        finally:
+            if db_modified:
+                self.db_intf.commit()
+            self.db_intf.release_cursor()
+            self.db_intf.release_cursor()
+
+        cur = self.db_intf.get_cursor()
+        cur2 = self.db_intf.get_cursor()
+        db_modified = False
+        try:
+            tm_start = time.time()
+            db_correction_duration = 0.0
+            logging.debug("Reading systemnodes' data from DB")
+            cur.execute("SELECT id, ident, status, protocol, payee, last_seen, active_seconds,"
+                        " last_paid_time, last_paid_block, IP from SYSTEMNODES where cmt_active=1")
+            for row in cur.fetchall():
+                db_id = row[0]
+                ident = row[1]
+
+                # correct duplicated masternodes issue
+                sn_first = self.systemnodes_by_ident.get(ident)
+                if sn_first is not None:
+                    continue
+
+                # delete duplicated (caused by breaking the app while loading)
+                tm_start_1 = time.time()
+                cur2.execute('DELETE from SYSTEMNODES where ident=? and id<>?', (ident, db_id))
+                if cur2.rowcount > 0:
+                    db_modified = True
+                db_correction_duration += (time.time() - tm_start_1)
+
+                sn = Systemnode()
+                sn.db_id = db_id
+                sn.ident = ident
+                sn.status = row[2]
+                sn.protocol = row[3]
+                sn.payee = row[4]
+                sn.lastseen = row[5]
+                sn.activeseconds = row[6]
+                sn.lastpaidtime = row[7]
+                sn.lastpaidblock = row[8]
+                sn.ip = row[9]
+                self.systemnodes.append(sn)
+                self.systemnodes_by_ident[sn.ident] = sn
+
+            tm_diff = time.time() - tm_start
+            logging.info('DB read time of %d SYSTEMNODES: %s s, db fix time: %s' %
+                         (len(self.systemnodes), str(tm_diff), str(db_correction_duration)))
+            self.update_sn_queue_values()
         except Exception as e:
             logging.exception('SQLite initialization error')
         finally:
@@ -1006,6 +1084,201 @@ class CrowndInterface(WndUtils):
             raise Exception('Not connected')
 
     @control_rpc_call
+    def snsync(self):
+        if self.open():
+            # if connecting to HTTP(S) proxy do not call this function - it will not be exposed
+            if self.cur_conn_def.is_http_proxy():
+                return {}
+            else:
+                return self.proxy.snsync('status')
+        else:
+            raise Exception('Not connected')
+
+    @control_rpc_call
+    def systemnodebroadcast(self, what, hexto):
+        if self.open():
+            return self.proxy.systemnodebroadcast(what, hexto)
+        else:
+            raise Exception('Not connected')
+
+    def update_sn_queue_values(self):
+        """
+        Updates systemnode payment queue order values.
+        """
+
+        start_tm = time.time()
+        self.payment_queue = []
+        d = datetime.datetime.utcnow()
+        now = int(time.mktime((d.year, d.month, d.day, d.hour, d.minute, d.second, 0, 0, 0)))
+
+        for sn in self.systemnodes:
+            if sn.status == 'ENABLED':
+                # estimate payment queue position: after loading all systemnodes
+                # queue_position will be used to sort sn list and count the real queue position
+                if sn.lastpaidtime == 0:
+                    sn.queue_position = sn.activeseconds
+                else:
+                    lastpaid_ago = now - sn.lastpaidtime
+                    sn.queue_position = min(lastpaid_ago, sn.activeseconds)
+                self.payment_queue.append(sn)
+            else:
+                sn.queue_position = None
+
+        duration1 = time.time() - start_tm
+        self.payment_queue.sort(key=lambda x: x.queue_position, reverse=True)
+        duration2 = time.time() - start_tm
+
+        for sn in self.systemnodes:
+            if sn.status == 'ENABLED':
+                sn.queue_position = self.payment_queue.index(sn)
+            else:
+                sn.queue_position = None
+        duration3 = time.time() - start_tm
+        logging.info('Systemnode queue build time1: %s, time2: %s, time3: %s' %
+                     (str(duration1), str(duration2), str(duration3)))
+
+    @control_rpc_call
+    def get_systemnodelist(self, *args, data_max_age=MASTERNODES_CACHE_VALID_SECONDS):
+        """
+        Returns systemnode list, read from the Crown network or from the internal cache.
+        :param args: arguments passed to the 'systemnodelist' RPC call
+        :param data_max_age: maximum age (in seconds) of the cached systemnode data to used; if the
+            cache is older than 'data_max_age', then an RPC call is performed to load newer systemnode data;
+            value of 0 forces reading of the new data from the network
+        :return: list of Systemnode objects, matching the 'args' arguments
+        """
+        def parse_sns(sns_raw):
+            """
+            Parses dictionary of strings returned from the RPC to Systemnode object list.
+            :param mns_raw: Dict of systemnodes in format of RPC systemnodelist command
+            :return: list of Systemnode object
+            """
+            tm_begin = time.time()
+            ret_list = []
+            for sn_id in sns_raw.keys():
+                sn_raw = sns_raw.get(sn_id)
+                sn_raw = sn_raw.strip()
+                elems = sn_raw.split()
+                if len(elems) >= 7:
+                    sn = Systemnode()
+                    # (status, protocol, ip, payee, lastseen, activeseconds, lastpaidtime)
+                    sn.status, sn.protocol, sn.ip, sn.payee, sn.lastseen, sn.activeseconds, \
+                        sn.lastpaidtime = elems
+
+                    sn.lastseen = int(sn.lastseen)
+                    sn.activeseconds = int(sn.activeseconds)
+                    sn.lastpaidtime = int(sn.lastpaidtime)
+                    sn.ident = sn_id
+                    ret_list.append(sn)
+            duration = time.time() - tm_begin
+            logging.info('Parse systemnodelist time: ' + str(duration))
+            return ret_list
+
+        def update_systemnode_data(existing_sn, new_data, cursor):
+            # update cached systemnode's properties
+            existing_sn.modified = False
+            existing_sn.monitor_changes = True
+            existing_sn.ident = new_data.ident
+            existing_sn.status = new_data.status
+            existing_sn.protocol = new_data.protocol
+            existing_sn.payee = new_data.payee
+            existing_sn.lastseen = new_data.lastseen
+            existing_sn.activeseconds = new_data.activeseconds
+            existing_sn.lastpaidtime = new_data.lastpaidtime
+            existing_sn.lastpaidblock = new_data.lastpaidblock
+            existing_sn.ip = new_data.ip
+
+            # ... and finally update SN db record
+            if cursor and existing_sn.modified:
+                cursor.execute("UPDATE SYSTEMNODES set ident=?, status=?, protocol=?, payee=?,"
+                               " last_seen=?, active_seconds=?, last_paid_time=?, "
+                               " last_paid_block=?, ip=?"
+                               "WHERE id=?",
+                               (new_data.ident, new_data.status, new_data.protocol, new_data.payee,
+                                new_data.lastseen, new_data.activeseconds, new_data.lastpaidtime,
+                                new_data.lastpaidblock, new_data.ip, existing_sn.db_id))
+
+        if self.open():
+
+            if len(args) == 1 and args[0] == 'full':
+                last_read_time = self.get_cache_value('SystemnodesLastReadTime', 0, int)
+                logging.info("SystemnodesLastReadTime: %d" % last_read_time)
+
+                if self.systemnodes and data_max_age > 0 and \
+                   int(time.time()) - last_read_time < data_max_age:
+                    logging.info('Using cached systemnodelist (data age: %s)' % str(int(time.time()) - last_read_time))
+                    return self.systemnodes
+                else:
+                    logging.info('Loading systemnode list from Crown daemon...')
+                    sns = self.proxy.systemnodelist(*args)
+                    sns = parse_sns(sns)
+                    logging.info('Finished loading systemnode list')
+
+                    # mark already cached systemnodes to identify those to delete
+                    for sn in self.systemnodes:
+                        sn.marker = False
+
+                    # save systemodes to the db cache
+                    db_modified = False
+                    cur = None
+                    try:
+                        if self.db_intf.db_active:
+                            cur = self.db_intf.get_cursor()
+
+                        for sn in sns:
+                            # check if newly-read systemnode already exists in the cache
+                            existing_sn = self.systemnodes_by_ident.get(sn.ident)
+                            if not existing_sn:
+                                sn.marker = True
+                                self.systemnodes.append(sn)
+                                self.systemnodes_by_ident[sn.ident] = sn
+
+                                if self.db_intf.db_active:
+                                    cur.execute("INSERT INTO SYSTEMNODES(ident, status, protocol, payee, last_seen,"
+                                            " active_seconds, last_paid_time, last_paid_block, ip, cmt_active,"
+                                            " cmt_create_time) "
+                                            "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                                            (sn.ident, sn.status, sn.protocol, sn.payee, sn.lastseen,
+                                             sn.activeseconds, sn.lastpaidtime, sn.lastpaidblock, sn.ip, 1,
+                                             datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+                                    sn.db_id = cur.lastrowid
+                                    db_modified = True
+                            else:
+                                existing_sn.marker = True
+                                update_systemnode_data(existing_sn, sn, cur)
+                                db_modified = True
+
+                        # remove from the cache systemnodes that no longer exist
+                        for sn_index in reversed(range(len(self.systemnodes))):
+                            sn = self.systemnodes[sn_index]
+
+                            if not sn.marker:
+                                if self.db_intf.db_active:
+                                    cur.execute("UPDATE SYSTEMNODES set cmt_active=0, cmt_deactivation_time=?"
+                                                "WHERE ID=?",
+                                                (datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                                                sn.db_id))
+                                    db_modified = True
+                                self.systemnodes_by_ident.pop(sn.ident,0)
+                                del self.systemnodes[sn_index]
+
+                        self.set_cache_value('SystemnodesLastReadTime', int(time.time()))
+                        self.update_sn_queue_values()
+                    finally:
+                        if db_modified:
+                            self.db_intf.commit()
+                        if cur is not None:
+                            self.db_intf.release_cursor()
+
+                    return self.systemnodes
+            else:
+                sns = self.proxy.systemnodelist(*args)
+                sns = parse_sns(sns)
+                return sns
+        else:
+            raise Exception('Not connected')
+
+    @control_rpc_call
     def getaddressbalance(self, address):
         if self.open():
             return self.proxy.getaddressbalance({'addresses': [address]}).get('balance')
@@ -1079,6 +1352,13 @@ class CrowndInterface(WndUtils):
     def masternode(self, *args):
         if self.open():
             return self.proxy.masternode(*args)
+        else:
+            raise Exception('Not connected')
+
+    @control_rpc_call
+    def systemnode(self, *args):
+        if self.open():
+            return self.proxy.systemnode(*args)
         else:
             raise Exception('Not connected')
 

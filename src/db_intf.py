@@ -121,10 +121,18 @@ class DBCache(object):
         cur.execute("CREATE TABLE IF NOT EXISTS VOTING_RESULTS(id INTEGER PRIMARY KEY, proposal_id INTEGER,"
                     " masternode_ident TEXT, voting_time TEXT, voting_result TEXT,"
                     "hash TEXT)")
-        cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS IDX_VOTING_RESULTS_HASH ON VOTING_RESULTS(hash)")
+#        cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS IDX_VOTING_RESULTS_HASH ON VOTING_RESULTS(hash)")
         cur.execute("CREATE INDEX IF NOT EXISTS IDX_VOTING_RESULTS_1 ON VOTING_RESULTS(proposal_id)")
         cur.execute("CREATE INDEX IF NOT EXISTS IDX_VOTING_RESULTS_2 ON VOTING_RESULTS(masternode_ident)")
 
         # Create table for storing live data for example last read time of proposals
         cur.execute("CREATE TABLE IF NOT EXISTS LIVE_CONFIG(symbol text PRIMARY KEY, value TEXT)")
         cur.execute("CREATE INDEX IF NOT EXISTS IDX_LIVE_CONFIG_SYMBOL ON LIVE_CONFIG(symbol)")
+
+        # create structures for systemnodes data:
+        cur.execute("CREATE TABLE IF NOT EXISTS SYSTEMNODES(id INTEGER PRIMARY KEY, ident TEXT, status TEXT,"
+                    " protocol TEXT, payee TEXT, last_seen INTEGER, active_seconds INTEGER,"
+                    " last_paid_time INTEGER, last_paid_block INTEGER, ip TEXT,"
+                    " cmt_active INTEGER, cmt_create_time TEXT, cmt_deactivation_time TEXT)")
+        cur.execute("CREATE INDEX IF NOT EXISTS IDX_SYSTEMNODES_CMT_ACTIVE ON SYSTEMNODES(cmt_active)")
+        cur.execute("CREATE INDEX IF NOT EXISTS IDX_SYSTEMNODES_IDENT ON SYSTEMNODES(ident)")
