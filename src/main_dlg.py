@@ -1171,7 +1171,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         new_mn = MasterNodeConfig()
         new_mn.new = True
         self.curMasternode = new_mn
-        # find new, not used masternode name proposal
+        # find new, not used masternode name suggestion
         name_found = None
         for nr in range(1, 100):
             exists = False
@@ -1197,7 +1197,7 @@ class MainWindow(QMainWindow, WndUtils, ui_main_dlg.Ui_MainWindow):
         new_sn = SystemNodeConfig()
         new_sn.new = True
         self.curSystemnode = new_sn
-        # find new, not used systemnode name proposal
+        # find new, not used systemnode name suggestion
         name_found = None
         for nr in range(1, 100):
             exists = False
