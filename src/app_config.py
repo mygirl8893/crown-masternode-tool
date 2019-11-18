@@ -82,7 +82,7 @@ class AppConfig(object):
                                               #  NFKD: compatible with Trezor
 
         self.block_explorer_tx = 'https://insight-01.crownplatform.com/tx/%TXID%'
-        self.block_explorer_addr = 'https://insight-01.crownplatform.com/%ADDRESS%'
+        self.block_explorer_addr = 'https://insight-01.crownplatform.com/address/%ADDRESS%'
         self.crown_services_proposal_api = 'https://services.crownplatform.com/api/v1/proposal?hash=%HASH%'
 
         self.check_for_updates = True
