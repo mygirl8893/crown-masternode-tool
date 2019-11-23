@@ -316,7 +316,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         self.governanceinfo = None
         self.last_superblock_time = None
         self.next_superblock_time = None
-        self.voting_deadline_passed = True  # True when current block number is >= next superblock - ((3 * 24 * 60) / 2)
+        self.voting_deadline_passed = True  # True when current block number is >= next superblock - (2 * 24 * 60)
         self.proposals_last_read_time = 0
         self.current_proposal = None
         self.propsModel = None
@@ -391,19 +391,6 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
 
             reset_columns_order = False
             hide_name_column = False
-            try:
-                cache_app_version = app_cache.get_value('app_version', '0.9.10', str)
-                cache_app_version = app_utils.version_str_to_number(cache_app_version)
-
-                # version 0.9.11 introduced column 'title' which displays a proposal's title downloaded from
-                # external source as Crown Services; if it's not possible, a proposal's name is displayed instead
-                # column 'name' will be hidden only if the previously run version was lower than 0.9.11
-                if cache_app_version < app_utils.version_str_to_number('0.9.11'):
-                    hide_name_column = True
-                    reset_columns_order = True
-            except:
-                pass
-
 
             """ Read configuration of grid columns such as: display order, visibility. Also read configuration
              of dynamic columns: when user decides to display voting results of a masternode, which is not 
@@ -1057,8 +1044,8 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                             self.next_superblock_time = cur_bh['time'] + (sb_next - cur_block) * 60
 
                         if self.next_superblock_time == 0:
-                            self.next_superblock_time = last_bh['time'] + (sb_next - sb_last) * 60
-                        deadline_block = sb_next - ((3 * 24 * 60) / 2)
+                            self.next_superblock_time = last_bh['time'] + 43200 * 60
+                        deadline_block = sb_next - (2 * 24 * 60)
                         self.voting_deadline_passed = deadline_block <= cur_block < sb_next
 
                         self.next_voting_deadline = self.next_superblock_time - (2880 * 60)
@@ -1648,12 +1635,12 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
     def on_btnProposalsRefresh_clicked(self):
         self.btnProposalsRefresh.setEnabled(False)
         self.btnVotesRefresh.setEnabled(False)
-        self.runInThread(self.refresh_proposalls_thread, (),
+        self.runInThread(self.refresh_proposals_thread, (),
                          on_thread_finish=self.enable_refresh_buttons,
                          on_thread_exception=self.enable_refresh_buttons,
                          skip_raise_exception=True)
 
-    def refresh_proposalls_thread(self, ctrl):
+    def refresh_proposals_thread(self, ctrl):
         self.read_proposals_from_network()
 
         proposals = []
