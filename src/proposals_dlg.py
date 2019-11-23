@@ -44,6 +44,12 @@ PROPOSALS_CACHE_VALID_SECONDS = 3600
 # Number of seconds after which voting will be reloaded for active proposals:
 VOTING_RELOAD_TIME = 3600
 
+# Superblock interval. In mainnet it's 43200 blocks or approximately 30 days
+SUPERBLOCK_INTERVAL = 30 * 24 * 60
+
+# Superblock voting deadline. In mainnet it's 2800 blocks or approximately 2 days
+SUPERBLOCK_DEADLINE = 2 * 24 * 60
+
 VOTE_CODE_YES = '1'
 VOTE_CODE_NO = '2'
 VOTE_CODE_ABSTAIN = '3'
@@ -1054,9 +1060,8 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         self.display_message('Reading governance data, please wait...')
 
                         # get the date-time of the next superblock and calculate the date-time of the last one
-                        # superblocks occur every 43200 blocks (approximately 30 days)
                         sb_next = self.crownd_intf.mnbudget('nextblock')
-                        sb_last = sb_next - 43200
+                        sb_last = sb_next - SUPERBLOCK_INTERVAL
 
                         cur_block = self.crownd_intf.getblockcount()
 
@@ -1070,11 +1075,11 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                             self.next_superblock_time = cur_bh['time'] + (sb_next - cur_block) * 60
 
                         if self.next_superblock_time == 0:
-                            self.next_superblock_time = last_bh['time'] + 43200 * 60
-                        deadline_block = sb_next - (2 * 24 * 60)
+                            self.next_superblock_time = last_bh['time'] + SUPERBLOCK_INTERVAL * 60
+                        deadline_block = sb_next - SUPERBLOCK_DEADLINE
                         self.voting_deadline_passed = deadline_block <= cur_block < sb_next
 
-                        self.next_voting_deadline = self.next_superblock_time - (2880 * 60)
+                        self.next_voting_deadline = self.next_superblock_time - (SUPERBLOCK_DEADLINE * 60)
                         self.next_voting_deadline -= time.timezone  # add a timezone correction
                         self.next_superblock_time -= time.timezone
                         next_sb_dt = datetime.datetime.utcfromtimestamp(self.next_superblock_time)
