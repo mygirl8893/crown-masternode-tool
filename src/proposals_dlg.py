@@ -350,6 +350,26 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
 
         return block_time
 
+    def time_of_block2(self, height, cache_height, cache_time):
+        """
+        Find or calculate the actual or estimated epoch time of a block.
+        :param height: height of the block you want the creation time for
+        :param cache_height: cached getblockcount() value
+        :param cache_time: time of the cached getblockcount() block
+        :return: epoch time of the block
+        """
+        if height == cache_height:
+            block_time = cache_time
+        elif height < cache_height:
+            hash = self.crownd_intf.getblockhash(height)
+            header = self.crownd_intf.getblockheader(hash)
+            block_time = header['time']
+        else:
+            delta_seconds = (height - cache_height) * 60
+            block_time = int(time.time()) + delta_seconds
+
+        return block_time
+
     def setupUi(self):
         try:
             ui_proposals.Ui_ProposalsDlg.setupUi(self, self)
@@ -806,6 +826,12 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                 prop.marker = False
                 prop.modified = False  # all modified proposals will be saved to DB cache
 
+            # optimise get_block_time 
+            cache_height = self.crownd_intf.getblockcount()
+            hash = self.crownd_intf.getblockhash(cache_height)
+            header = self.crownd_intf.getblockheader(hash)
+            cache_time = header['time']
+
             errors = 0
             for pro_key in proposals_new:
                 hash = '?'
@@ -840,8 +866,8 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     prop.set_value('is_valid', prop_raw['IsValid'])
                     prop.set_value('is_valid_reason', prop_raw['IsValidReason'])
                     prop.set_value('f_valid', prop_raw['fValid'])
-                    prop.set_value('payment_start', datetime.datetime.fromtimestamp(self.time_of_block(prop.get_value('block_start'))))
-                    prop.set_value('payment_end', datetime.datetime.fromtimestamp(self.time_of_block(prop.get_value('block_end'))))
+                    prop.set_value('payment_start', datetime.datetime.fromtimestamp(self.time_of_block2(prop.get_value('block_start'), cache_height, cache_time)))
+                    prop.set_value('payment_end', datetime.datetime.fromtimestamp(self.time_of_block2(prop.get_value('block_end'), cache_height, cache_time)))
                     prop.set_value('absolute_yes_count', int(prop_raw['Yeas']) - int(prop_raw['Nays']))
                     prop.apply_values(self.masternodes, self.last_superblock_time, self.next_superblock_time)
                     if is_new:
