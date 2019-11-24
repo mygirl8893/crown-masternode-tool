@@ -207,8 +207,6 @@ class Proposal(AttrsProtected):
         else:
             self.voting_in_progress = False
 
-        print(self.get_value('total_payment'))
-        
         if not self.get_value('title'):
             # if title value is not set (it's an external attribute, from Crown Services) then copy value from the
             # name column
