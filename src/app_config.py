@@ -265,15 +265,6 @@ class AppConfig(object):
         was_default_direct_localhost_in_ini_v1 = False
         ini_v1_localhost_rpc_cfg = None
 
-        # from v0.9.15 some public nodes changed its names and port numbers to the official HTTPS port number: 443
-        # correct the configuration
-        if not self.app_last_version or \
-            (app_utils.version_str_to_number(self.app_last_version) < app_utils.version_str_to_number('0.9.16')):
-            correct_public_nodes = True
-        else:
-            correct_public_nodes = False
-        configuration_corrected = False
-
         if os.path.exists(self.app_config_file_name):
             config = ConfigParser()
             try:
@@ -333,15 +324,6 @@ class AppConfig(object):
                         self.crown_net_configs.append(cfg)
                         was_default_direct_localhost_in_ini_v1 = cfg.enabled and cfg.host == '127.0.0.1'
                         ini_v1_localhost_rpc_cfg = cfg
-                        if correct_public_nodes:
-                            if cfg.host.lower() == 'alice.dash-dmt.eu':
-                                cfg.host = 'alice.dash-masternode-tool.org'
-                                cfg.port = '443'
-                                configuration_corrected = True
-                            elif cfg.host.lower() == 'luna.dash-dmt.eu':
-                                cfg.host = 'luna.dash-masternode-tool.org'
-                                cfg.port = '443'
-                                configuration_corrected = True
 
                 self.last_bip32_base_path = config.get(section, 'bip32_base_path', fallback="44'/83'/0'/0/0")
                 if not self.last_bip32_base_path:
@@ -414,24 +396,14 @@ class AppConfig(object):
                         cfg.ssh_conn_cfg.port = config.get(section, 'ssh_port', fallback='')
                         cfg.ssh_conn_cfg.username = config.get(section, 'ssh_username', fallback='')
                         self.crown_net_configs.append(cfg)
-                        if correct_public_nodes:
-                            if cfg.host.lower() == 'alice.dash-dmt.eu':
-                                cfg.host = 'alice.dash-masternode-tool.org'
-                                cfg.port = '443'
-                                configuration_corrected = True
-                            elif cfg.host.lower() == 'luna.dash-dmt.eu':
-                                cfg.host = 'luna.dash-masternode-tool.org'
-                                cfg.port = '443'
-                                configuration_corrected = True
             except Exception:
                 logging.exception('Read configuration error:')
 
         try:
             cfgs = self.decode_connections(default_config.crownd_default_connections)
             if cfgs:
-                # force import default connections if there is no any in the configuration
-                force_import = (len(self.crown_net_configs) == 0) or \
-                               (self.app_last_version == '0.9.15') # v0.9.15 imported the connections but not saved the cfg
+                # force import default connections if there are none in the configuration
+                force_import = (len(self.crown_net_configs) == 0)
 
                 added, updated = self.import_connections(cfgs, force_import=force_import)
                 if not ini_version or (ini_version == 1 and len(added) > 0):
