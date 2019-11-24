@@ -1365,7 +1365,7 @@ class CrowndInterface(WndUtils):
     @control_rpc_call
     def voteraw(self, masternode_tx_hash, masternode_tx_index, governance_hash, vote_signal, vote, sig_time, vote_sig):
         if self.open():
-            return self.proxy.voteraw(masternode_tx_hash, masternode_tx_index, governance_hash, vote_signal, vote,
+            return self.proxy.mnbudgetvoteraw(masternode_tx_hash, masternode_tx_index, governance_hash, vote,
                                       sig_time, vote_sig)
         else:
             raise Exception('Not connected')
