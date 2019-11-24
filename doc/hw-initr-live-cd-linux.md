@@ -1,13 +1,13 @@
-## Running TMT on an offline Linux system
-For security reasons, some of the scenarios presented above require TMT to be run on an offline computer. Ubuntu Linux is perfectly suitable for this purpose, because the standard desktop system image can be run from a DVD or USB media (without installing it to your hard drive), and no sensitive information is left on the computer after performing the hardware wallet recovery/initialization. Follow these instructions first to create a Linux bootable DVD/USB: https://help.ubuntu.com/community/LiveCD
+## Running CMT on an offline Linux system
+For security reasons, some of the scenarios presented above require CMT to be run on an offline computer. Ubuntu Linux is perfectly suitable for this purpose, because the standard desktop system image can be run from a DVD or USB media (without installing it to your hard drive), and no sensitive information is left on the computer after performing the hardware wallet recovery/initialization. Follow these instructions first to create a Linux bootable DVD/USB: https://help.ubuntu.com/community/LiveCD
 
 1. Boot your computer from the LiveCD or LiveUSB media. It is recommended to use a computer without any hard drives installed (or at least physically disconnecting any drives) and to use wired Ethernet instead of Wi-Fi for your network connection.
   Once your system boots, select the `Try Ubuntu` option:  
   ![Ubuntu - boot](img/hwri/ubuntu-live-cd-boot.png)
-2. On the running Linux system, download the latest [Terracoin Masternode Tool archived binary](https://github.com/TheSin-/terracoin-masternode-tool/releases) (.tar.gz) from the project page, or copy the file to the system in some other way.
+2. On the running Linux system, download the latest [Crown Masternode Tool archived binary](https://github.com/TheSin-/crown-masternode-tool/releases) (.tar.gz) from the project page, or copy the file to the system in some other way.
 3. Decompress the file by double-clicking it.
 4. Disconnect the computer from the network (unplug the cable) and remove all unnecessary USB media.
-5. Launch TMT.
+5. Launch CMT.
 6. Open the `Hardware wallet initialization/recovery` dialog from the `Tools` menu.
 7. Add the appropriate udev rules to make your hardware wallet visible on the system. For more information on how to do this, click the `see the details` link as shown in the screenshot below:  
   ![Ubuntu - boot](img/hwri/ubuntu-live-cd-udev.png)  
@@ -18,7 +18,7 @@ For security reasons, some of the scenarios presented above require TMT to be ru
 8. Perform the desired hardware wallet procedure (initialization or recovery).
 9. Shut down the system.
 
-**A copy of the commands to create the udev rules required by hardware wallets supported by TMT appears below**
+**A copy of the commands to create the udev rules required by hardware wallets supported by CMT appears below**
 
 **For Trezor hardware wallets:**
 ```

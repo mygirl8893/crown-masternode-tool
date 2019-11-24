@@ -1,6 +1,6 @@
 ## Browsing and voting on proposals
 
-Version 0.9.8 of *TMT* introduced functionality for *masternode owners* (MNOs) to review and cast votes on current proposals. In addition to MNOs, this feature is also useful to *proposal owners*, who can use it to track and analyze voting progress on their proposals.
+Version 0.10.0 of *CMT* includes functionality for *masternode owners* (MNOs) to review and cast votes on current proposals. In addition to MNOs, this feature is also useful to *proposal owners*, who can use it to track and analyze voting progress on their proposals.
 
 
 To use these features, open the *Proposals* window by clicking the `Proposals` button in the main application window. The following window appears:  
@@ -14,7 +14,7 @@ The upper part of the window shows a list of proposals in a table, with several 
 In the `Proposals` dialog, you can:
  * View the list of all of the currently available proposals and associated details.
  * View the list of votes cast on particular proposal.
- * Cast a vote on proposals (if a masternode is configured in *TMT*).
+ * Cast a vote on proposals (if a masternode is configured in *CMT*).
  * Save proposal and vote data to a CSV file for further analysis.
  * View charts showing voting progress over time.
  * Filter proposals by its properties: name, title, proposal owner
@@ -48,7 +48,7 @@ Open the `Vote` tab in the lower section of the `Proposals` window. You will see
 
 If you own several masternodes, you should consider that casting a vote with all of them simultaneously is in effect publicly linking all of the nodes to a single owner, which may be considered a privacy risk. The following screenshot highlights this point:  
 ![Simultaneous voting](img/tmt-proposals-vote-time-offset.png)  
-Bear in mind that all of this information is available to anybody with access to any Terracoin daemon.
+Bear in mind that all of this information is available to anybody with access to any Crown daemon.
 
-Fortunately, there is an easy way to mitigate this type of timing attack. *TMT* can add a random offset (within a range of +/- 30 min) to the voting time for each of configured masternode, so clicking one of the `Yes/No/Abstain for all` buttons will result in a different voting timestamp for each masternode, as seen by the network. This feature can be enabled using the `Add random offset to new vote time to enhance privacy` option, as shown in the screenshot below:  
+Fortunately, there is an easy way to mitigate this type of timing attack. *CMT* can add a random offset (within a range of +/- 30 min) to the voting time for each of configured masternode, so clicking one of the `Yes/No/Abstain for all` buttons will result in a different voting timestamp for each masternode, as seen by the network. This feature can be enabled using the `Add random offset to new vote time to enhance privacy` option, as shown in the screenshot below:  
 ![Random offset for voting](img/tmt-proposals-config-time-offset.png)
