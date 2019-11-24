@@ -257,7 +257,7 @@ class AppConfig(object):
         elif isinstance(data, int):
             return str(data)
         else:
-            raise Exception('Argument is not a datetime type')
+            raise Exception('Argument is an unexpected type')
 
     def read_from_file(self):
         ini_version = None
