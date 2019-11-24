@@ -261,69 +261,18 @@ class AppConfig(object):
 
     def read_from_file(self):
         ini_version = None
-        was_default_ssh_in_ini_v1 = False
-        was_default_direct_localhost_in_ini_v1 = False
-        ini_v1_localhost_rpc_cfg = None
-
         if os.path.exists(self.app_config_file_name):
             config = ConfigParser()
             try:
                 section = 'CONFIG'
                 config.read(self.app_config_file_name)
-                ini_version = config.get(section, 'CFG_VERSION', fallback=1)  # if CFG_VERSION not set it's old config
+                ini_version = config.get(section, 'CFG_VERSION', fallback=2)
 
                 log_level_str = config.get(section, 'log_level', fallback='WARNING')
                 if log_level_str not in ('CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'):
                     log_level_str = 'WARNING'
                 if self.log_level_str != log_level_str:
                     self.set_log_level(log_level_str)
-
-                if ini_version == 1:
-                    # read network config from old file format
-                    crownd_connect_method = config.get(section, 'crownd_connect_method', fallback='rpc')
-                    rpc_user = config.get(section, 'rpc_user', fallback='')
-                    rpc_password = config.get(section, 'rpc_password', fallback='')
-                    rpc_ip = config.get(section, 'rpc_ip', fallback='')
-                    rpc_port = config.get(section, 'rpc_port', fallback='8889')
-                    ros_ssh_host = config.get(section, 'ros_ssh_host', fallback='')
-                    ros_ssh_port = config.get(section, 'ros_ssh_port', fallback='22')
-                    ros_ssh_username = config.get(section, 'ros_ssh_username', fallback='')
-                    ros_rpc_bind_ip = config.get(section, 'ros_rpc_bind_ip', fallback='127.0.0.1')
-                    ros_rpc_bind_port = config.get(section, 'ros_rpc_bind_port', fallback='13332')
-                    ros_rpc_username = config.get(section, 'ros_rpc_username', fallback='')
-                    ros_rpc_password = config.get(section, 'ros_rpc_password', fallback='')
-
-                    # convert crown network config from config version 1
-                    if ros_ssh_host and ros_ssh_port and ros_ssh_username and ros_rpc_bind_ip and \
-                       ros_rpc_bind_port and ros_rpc_username and ros_rpc_password:
-
-                        # import RPC over SSH configuration
-                        cfg = CrownNetworkConnectionCfg('rpc')
-                        cfg.enabled = True if crownd_connect_method == 'rpc_ssh' else False
-                        cfg.host = ros_rpc_bind_ip
-                        cfg.port = ros_rpc_bind_port
-                        cfg.use_ssl = False
-                        cfg.username = ros_rpc_username
-                        cfg.password = ros_rpc_password
-                        cfg.use_ssh_tunnel = True
-                        cfg.ssh_conn_cfg.host = ros_ssh_host
-                        cfg.ssh_conn_cfg.port = ros_ssh_port
-                        cfg.ssh_conn_cfg.username = ros_ssh_username
-                        self.crown_net_configs.append(cfg)
-                        was_default_ssh_in_ini_v1 = cfg.enabled
-
-                    if rpc_user and rpc_password and rpc_ip and rpc_port:
-                        cfg = CrownNetworkConnectionCfg('rpc')
-                        cfg.enabled = True if crownd_connect_method == 'rpc' else False
-                        cfg.host = rpc_ip
-                        cfg.port = rpc_port
-                        cfg.use_ssl = False
-                        cfg.username = rpc_user
-                        cfg.password = rpc_password
-                        cfg.use_ssh_tunnel = False
-                        self.crown_net_configs.append(cfg)
-                        was_default_direct_localhost_in_ini_v1 = cfg.enabled and cfg.host == '127.0.0.1'
-                        ini_v1_localhost_rpc_cfg = cfg
 
                 self.last_bip32_base_path = config.get(section, 'bip32_base_path', fallback="44'/83'/0'/0/0")
                 if not self.last_bip32_base_path:
@@ -406,25 +355,8 @@ class AppConfig(object):
                 force_import = (len(self.crown_net_configs) == 0)
 
                 added, updated = self.import_connections(cfgs, force_import=force_import)
-                if not ini_version or (ini_version == 1 and len(added) > 0):
-                    # we are migrating from config.ini version 1
-                    if was_default_ssh_in_ini_v1:
-                        # in v 1 user used connection to RPC over SSH;
-                        # we assume, that he would prefer his previus, trusted server, so we'll deactivate
-                        # added default public connections (user will be able to activate them manually)
-                        for new in added:
-                            new.enabled = False
-                    elif was_default_direct_localhost_in_ini_v1:
-                        # in the old version user used local crown daemon;
-                        # we assume, that user would prefer "public" connections over local, troublesome node
-                        # deactivate user's old cfg
-                        ini_v1_localhost_rpc_cfg.enabled = False
                 if added or updated:
-                    configuration_corrected = True
-
-            if not ini_version or ini_version == 1 or configuration_corrected:
-                # we are migrating settings from old configuration file - save config file in a new format
-                self.save_to_file()
+                    self.save_to_file()
 
         except Exception:
             pass
