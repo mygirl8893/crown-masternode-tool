@@ -206,26 +206,9 @@ class Proposal(AttrsProtected):
                                       (payment_end > next_superblock_datetime)
         else:
             self.voting_in_progress = False
-        days = (payment_end - payment_start) / 86400
-        payment_months = floor(days / 30)
 
-        # calculate number of payment-months that passed already for the proposal
-        if time.time() > payment_end:
-            cur_month = payment_months
-        else:
-            # number of days between next superblock and the payment start
-            days = (self.next_superblock_time - payment_start) / 86400
-            if days < 0:
-                cur_month = 0
-            else:
-                cur_month = floor(days / 30)
-
-        self.set_value('total_payment_count', payment_months)
-        self.set_value('current_month', cur_month)
-        amt = self.get_value('monthly_payment')
-        if amt is not None:
-            self.set_value('total_payment', amt * payment_months)
-
+        print(self.get_value('total_payment'))
+        
         if not self.get_value('title'):
             # if title value is not set (it's an external attribute, from Crown Services) then copy value from the
             # name column
@@ -238,7 +221,7 @@ class Proposal(AttrsProtected):
                 mns_count += 1
         if self.voting_in_progress:
             if abs_yes_count >= mns_count * 0.1:
-                self.voting_status = 1  # will be funded
+                self.voting_status = 1  # eligible to be funded
                 self.set_value('voting_status_caption', 'Passing +%d (%d of %d needed)' %
                                (abs_yes_count - int(mns_count * 0.1), abs_yes_count, int(mns_count * 0.1)))
             else:
@@ -299,7 +282,6 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
             ProposalColumn('owner', 'Owner', False),
             ProposalColumn('voting_status_caption', 'Voting Status', True),
             ProposalColumn('active', 'Active', True),
-            ProposalColumn('current_month', 'Current Payment', False),
             ProposalColumn('absolute_yes_count', 'Absolute Yes Count', False),
             ProposalColumn('payment_start', 'Payment Start', True),
             ProposalColumn('payment_end', 'Payment End', True),
@@ -806,7 +788,7 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
         """ Reads proposals from the Crown network. """
 
         def clean_float(data_in):
-            # deals with JSON field 'monthly_payment' passed as different type for different propsoals  - when it's
+            # deals with JSON field 'monthly_payment' passed as different type for different proposals  - when it's
             # a string, then comma (if exists) is replaced wit a dot, otherwise it's converted to a float
             if isinstance(data_in, str):
                 return float(data_in.replace(',', '.'))
@@ -853,18 +835,20 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                         is_new = False
                     prop.marker = True
 
+                    block_start = int(prop_raw['BlockStart'])
+                    total_payment_count = int(prop_raw['TotalPaymentCount'])
+
                     prop.set_value('name', prop_raw['Name'])
                     prop.set_value('url', prop_raw['URL'])
                     prop.set_value('hash', hash)
                     prop.set_value('fee_hash', prop_raw['FeeHash'])
-                    prop.set_value('block_start', int(prop_raw['BlockStart']))
-                    prop.set_value('block_end', int(prop_raw['BlockEnd']))
-                    prop.set_value('total_payment_count', int(prop_raw['TotalPaymentCount']))
-                    prop.set_value('remaining_payment_count', int(prop_raw['RemainingPaymentCount']))
+                    prop.set_value('block_start', block_start)
+                    prop.set_value('total_payment_count', total_payment_count)
                     prop.set_value('payment_address', prop_raw["PaymentAddress"])
                     prop.set_value('ratio', clean_float(prop_raw['Ratio']))
                     prop.set_value('yes_count', int(prop_raw['Yeas']))
                     prop.set_value('no_count', int(prop_raw['Nays']))
+                    prop.set_value('absolute_yes_count', int(prop_raw['Yeas']) - int(prop_raw['Nays']))
                     prop.set_value('abstain_count', int(prop_raw['Abstains']))
                     prop.set_value('total_payment', clean_float(prop_raw['TotalPayment']))
                     prop.set_value('monthly_payment', clean_float(prop_raw['MonthlyPayment']))
@@ -872,10 +856,29 @@ class ProposalsDlg(QDialog, ui_proposals.Ui_ProposalsDlg, wnd_utils.WndUtils):
                     prop.set_value('is_valid', prop_raw['IsValid'])
                     prop.set_value('is_valid_reason', prop_raw['IsValidReason'])
                     prop.set_value('f_valid', prop_raw['fValid'])
-                    prop.set_value('payment_start', datetime.datetime.fromtimestamp(self.time_of_block2(prop.get_value('block_start'), cache_height, cache_time)))
-                    prop.set_value('payment_end', datetime.datetime.fromtimestamp(self.time_of_block2(prop.get_value('block_end'), cache_height, cache_time)))
-                    prop.set_value('absolute_yes_count', int(prop_raw['Yeas']) - int(prop_raw['Nays']))
+
+                    # Some of the values in the proposal system are at best dubious, otherwise wrong.
+                    # In particular, BlockEnd is set in masternode-budget.cpp to 
+                    #    BlockStart+(TotalPaymentCount*SuperblockInterval)+SuperblockInterval/2
+                    # which is confusing nonsense. I *think* the fencepost error is unintentional and the BlockEnd
+                    # value is badly named and is really the block after which the proposal should be deleted from
+                    # the network.
+                    # Also, RemainingPaymentCount can be wrong so we calculate it ourself.
+                    block_end = block_start + (total_payment_count - 1) * SUPERBLOCK_INTERVAL
+                    if cache_height < block_start:
+                        payments_remaining = total_payment_count
+                    elif cache_height <= block_end:
+                        payments_made = (cache_height - block_start) // SUPERBLOCK_INTERVAL + 1
+                        payments_remaining = int(prop_raw['TotalPaymentCount']) - payments_made
+                    else:
+                        payments_remaining = 0
+                    prop.set_value('block_end', block_end)
+                    prop.set_value('remaining_payment_count', payments_remaining)
+                    prop.set_value('payment_start', datetime.datetime.fromtimestamp(self.time_of_block2(block_start, cache_height, cache_time)))
+                    prop.set_value('payment_end', datetime.datetime.fromtimestamp(self.time_of_block2(block_end, cache_height, cache_time)))
+
                     prop.apply_values(self.masternodes, self.last_superblock_time, self.next_superblock_time)
+                    
                     if is_new:
                         creation_txn = self.crownd_intf.getrawtransaction(prop_raw['FeeHash'], 1)
                         prop.set_value('creation_time', datetime.datetime.fromtimestamp(creation_txn['time']))
@@ -2787,8 +2790,9 @@ class ProposalsModel(QAbstractTableModel):
                                 return QCOLOR_ABSTAIN
 
                     elif role == Qt.TextAlignmentRole:
-                        if col.name in ('monthly_payment', 'total_payment', 'absolute_yes_count', 'yes_count',
-                                        'no_count', 'abstain_count', 'total_payment_count', 'current_month'):
+                        if col.name in ('monthly_payment', 'total_payment', 'absolute_yes_count',
+                                        'yes_count', 'no_count', 'abstain_count', 'total_payment_count', 
+                                        'remaining_payment_count'):
                             return Qt.AlignRight
 
                     elif role == Qt.FontRole:
