@@ -539,7 +539,7 @@ class CrowndInterface(WndUtils):
         self.active = False
         self.rpc_url = None
         self.proxy = None
-        self.http_conn = None  # HTTPConnection object passed to the AuthServiceProxy (for convinient connection reset)
+        self.http_conn = None  # HTTPConnection object passed to the AuthServiceProxy (for convenient connection reset)
         self.on_connection_begin_callback = on_connection_begin_callback
         self.on_connection_try_fail_callback = on_connection_try_fail_callback
         self.on_connection_finished_callback = on_connection_finished_callback
